@@ -58,6 +58,7 @@ namespace ICSharpCode.ILSpy
 
 		public static readonly ImageSource ReferenceFolder = Load("ReferenceFolder");
 		public static readonly ImageSource NuGet = Load(null, "Images/NuGet.png");
+		public static readonly ImageSource TML = Load(null, "Images/TML.png");
 		public static readonly ImageSource MetadataFile = Load("MetadataFile");
 		public static readonly ImageSource ProgramDebugDatabase = Load("ProgramDebugDatabase");
 

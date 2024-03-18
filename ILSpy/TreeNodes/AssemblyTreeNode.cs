@@ -95,6 +95,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					{
 						return loadResult.Package.Kind switch {
 							LoadedPackage.PackageKind.Zip => Images.NuGet,
+							LoadedPackage.PackageKind.Tmod => Images.TML,
 							_ => Images.Library,
 						};
 					}
