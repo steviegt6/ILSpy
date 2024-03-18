@@ -29,7 +29,7 @@ namespace ICSharpCode.ILSpy.Updates
 {
 	internal static class NotifyOfUpdatesStrategy
 	{
-		static readonly Uri UpdateUrl = new Uri("https://ilspy.net/updates.xml");
+		static readonly Uri UpdateUrl = new Uri("https://raw.githubusercontent.com/steviegt6/ILSpy/master/updates.xml");
 		const string band = "stable";
 
 		public static AvailableVersionInfo LatestAvailableVersion { get; private set; }
