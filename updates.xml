@@ -1,6 +1,6 @@
 <updateInfo>
     <band id="stable">
-        <latestVersion>9.0.0.7598-preview1</latestVersion>
+        <latestVersion>9.0.0.7598</latestVersion>
         <downloadUrl>
             https://github.com/steviegt6/ILSpy/releases/tag/v9.0.0.7598-preview1
         </downloadUrl>
