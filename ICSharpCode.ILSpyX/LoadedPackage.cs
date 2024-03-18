@@ -27,9 +27,12 @@ using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Metadata;
+
+using Tomat.FNB.TMOD;
 
 namespace ICSharpCode.ILSpyX
 {
@@ -42,6 +45,7 @@ namespace ICSharpCode.ILSpyX
 		{
 			Zip,
 			Bundle,
+			Tmod,
 		}
 
 		/// <summary>
@@ -103,6 +107,16 @@ namespace ICSharpCode.ILSpyX
 			using var archive = ZipFile.OpenRead(file);
 			return new LoadedPackage(PackageKind.Zip,
 				archive.Entries.Select(entry => new ZipFileEntry(file, entry)));
+		}
+
+		public static LoadedPackage FromTmodFile(string file)
+		{
+			if (!TmodFile.TryReadFromPath(file, out var tmod))
+				throw new Exception($"Failed to read .tmod \"{file}\"");
+			// return new LoadedPackage(PackageKind.Tmod, tmod.Entries.Select(x => new TmodPackageEntry(file, x)));
+			var entries = new List<TmodFileData>();
+			tmod.Extract(new ActionBlock<TmodFileData>(entries.Add), 8);
+			return new LoadedPackage(PackageKind.Tmod, entries.Select(x => new TmodExtractedPackageEntry(file, x)));
 		}
 
 		/// <summary>
@@ -238,6 +252,64 @@ namespace ICSharpCode.ILSpyX
 				return entry.Size;
 			}
 		}
+
+		private sealed class TmodExtractedPackageEntry : PackageEntry
+		{
+			public override string Name => data.Path;
+
+			public override string FullName => $"tmod://{tmod};{Name}";
+
+			private readonly string tmod;
+			private readonly TmodFileData data;
+
+			public TmodExtractedPackageEntry(string tmod, TmodFileData data)
+			{
+				this.tmod = tmod;
+				this.data = data;
+			}
+
+			public override long? TryGetLength()
+			{
+				return data.Data!.Length;
+			}
+
+			public override Stream? TryOpenStream()
+			{
+				return new MemoryStream(data.Data!.Array);
+			}
+		}
+
+		/*/// <summary>
+		///		Entry in a .tmod archive, provided by fnb.
+		/// </summary>
+		private sealed class TmodPackageEntry : PackageEntry
+		{
+			private readonly string tmodFile;
+			private readonly TmodFileEntry entry;
+
+			public override string Name => entry.Path;
+
+			public override string FullName => $"tmod://{tmodFile};{Name}";
+
+			public TmodPackageEntry(string tmodFile, TmodFileEntry entry)
+			{
+				this.tmodFile = tmodFile;
+				this.entry = entry;
+			}
+
+			public override Stream? TryOpenStream()
+			{
+				var ms = new MemoryStream();
+				ms.Write(entry.Data!.Array, 0, entry.Length);
+				return ms;
+			}
+
+			public override long? TryGetLength()
+			{
+				return entry.Length;
+			}
+		}*/
+
 	}
 
 	public abstract class PackageEntry : Resource

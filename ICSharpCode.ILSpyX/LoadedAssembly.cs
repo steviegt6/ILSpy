@@ -391,6 +391,17 @@ namespace ICSharpCode.ILSpyX
 			{
 				// Not a compressed module, try other options below
 			}
+			// If it's not a .NET module, maybe it's a tmod archive (e.g. .tmod)
+			try
+			{
+				var tmod = LoadedPackage.FromTmodFile(fileName);
+				tmod.LoadedAssembly = this;
+				return new LoadResult(loadAssemblyException, tmod);
+			}
+			catch (Exception)
+			{
+				// Not a tmod, try other options below
+			}
 			// or it could be a standalone portable PDB
 			try
 			{

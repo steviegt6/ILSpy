@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <AssemblyName>fnb</AssemblyName>
+    <RootNamespace>Tomat.FNB</RootNamespace>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CliFx"/>
+    <PackageReference Include="CommunityToolkit.HighPerformance"/>
+    <PackageReference Include="JetBrains.Annotations"/>
+    <PackageReference Include="LibDeflate.NET"/>
+    <PackageReference Include="SixLabors.ImageSharp"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../fnb/src/Tomat.FNB/fpng.dll" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../fnb/src/Tomat.FNB/**/*.cs"/>
+    <Compile Remove="../fnb/src/Tomat.FNB/obj/**/*.*"/>
+  </ItemGroup>
+
+</Project>
