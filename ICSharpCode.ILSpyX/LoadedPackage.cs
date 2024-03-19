@@ -46,6 +46,7 @@ namespace ICSharpCode.ILSpyX
 			Zip,
 			Bundle,
 			Tmod,
+			Directory,
 		}
 
 		/// <summary>
@@ -117,6 +118,13 @@ namespace ICSharpCode.ILSpyX
 			var entries = new List<TmodFileData>();
 			tmod.Extract(new ActionBlock<TmodFileData>(entries.Add), 8);
 			return new LoadedPackage(PackageKind.Tmod, entries.Select(x => new TmodExtractedPackageEntry(file, x)));
+		}
+
+		public static LoadedPackage FromDirectory(string file)
+		{
+			if (!Directory.Exists(file))
+				throw new DirectoryNotFoundException($"Could not find directory '${file}'");
+			return new LoadedPackage(PackageKind.Directory, Directory.EnumerateFiles(file, "*", SearchOption.AllDirectories).Select(x => new DirectoryPackageEntry(file, x)));
 		}
 
 		/// <summary>
@@ -276,6 +284,34 @@ namespace ICSharpCode.ILSpyX
 			public override Stream? TryOpenStream()
 			{
 				return new MemoryStream(data.Data!.Array);
+			}
+		}
+
+		private sealed class DirectoryPackageEntry : PackageEntry
+		{
+			public override string Name => relativePath;
+
+			public override string FullName => Path.Combine(directory, relativePath);
+
+			private readonly string directory;
+			private readonly string relativePath;
+			private readonly FileInfo file;
+
+			public DirectoryPackageEntry(string directory, string fullPath)
+			{
+				this.directory = directory;
+				relativePath = fullPath[(directory.Length + 1)..];
+				file = new FileInfo(FullName);
+			}
+
+			public override long? TryGetLength()
+			{
+				return file.Length;
+			}
+
+			public override Stream? TryOpenStream()
+			{
+				return file.OpenRead();
 			}
 		}
 

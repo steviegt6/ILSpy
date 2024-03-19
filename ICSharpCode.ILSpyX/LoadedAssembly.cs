@@ -52,6 +52,7 @@ namespace ICSharpCode.ILSpyX
 	///   * a .nupkg file or .NET core bundle
 	///   * a standalone portable pdb file or metadata stream
 	///   * a file that is still being loaded in the background
+	///   * a directory of files
 	/// </summary>
 	[DebuggerDisplay("[LoadedAssembly {shortName}]")]
 	public sealed class LoadedAssembly
@@ -331,6 +332,21 @@ namespace ICSharpCode.ILSpyX
 
 		async Task<LoadResult> LoadAsync(Task<Stream?>? streamTask)
 		{
+			// Special handling if it's a directory; virtualize it as an archive.
+			try
+			{
+				if (Directory.Exists(fileName))
+				{
+					var dir = LoadedPackage.FromDirectory(fileName);
+					dir.LoadedAssembly = this;
+					return new LoadResult(new Exception(), dir);
+				}
+			}
+			catch (DirectoryNotFoundException)
+			{
+				// Not a directory; should never throw but allow propagation?
+			}
+
 			// runs on background thread
 			var stream = streamTask != null ? await streamTask.ConfigureAwait(false) : null;
 			if (stream != null)

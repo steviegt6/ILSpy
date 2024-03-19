@@ -96,6 +96,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 						return loadResult.Package.Kind switch {
 							LoadedPackage.PackageKind.Zip => Images.NuGet,
 							LoadedPackage.PackageKind.Tmod => Images.TML,
+							LoadedPackage.PackageKind.Directory => Images.ListFolder,
 							_ => Images.Library,
 						};
 					}
@@ -435,6 +436,9 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					break;
 				case LoadedPackage.PackageKind.Tmod:
 					output.WriteLine("// File format: .tmod file");
+					break;
+				case LoadedPackage.PackageKind.Directory:
+					output.WriteLine("// Directory");
 					break;
 			}
 			output.WriteLine();
