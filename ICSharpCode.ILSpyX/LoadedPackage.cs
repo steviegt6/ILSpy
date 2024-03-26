@@ -114,10 +114,11 @@ namespace ICSharpCode.ILSpyX
 
 				try
 				{
-					var asm = new PEFile(entry.Name, stream);
-					if (asm.IsAssembly)
+					var asm = LoadedAssembly!.AssemblyList.OpenAssembly(entry.Name, stream);
+					if (asm.IsLoaded && asm.GetPEFileOrNull() is { } peFile)
 					{
-						result.Add(asm);
+						// LoadedAssembly.loadedAssemblies.Add(asm, new LoadedAssembly(new AssemblyList(asm)));
+						result.Add(peFile);
 					}
 				}
 				catch
