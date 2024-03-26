@@ -18,8 +18,10 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
@@ -70,19 +72,24 @@ namespace ICSharpCode.ILSpyX
 			public Exception? FileLoadException { get; }
 			public LoadedPackage? Package { get; }
 
-			public LoadResult(PEFile peFile)
+			public List<PEFile> SecondaryPEFiles { get; }
+
+			public LoadResult(PEFile peFile, List<PEFile>? secondaryFiles = null)
 			{
 				this.MetadataFile = peFile ?? throw new ArgumentNullException(nameof(peFile));
+				SecondaryPEFiles = secondaryFiles ?? [];
 			}
 			public LoadResult(Exception fileLoadException, LoadedPackage package)
 			{
 				this.FileLoadException = fileLoadException ?? throw new ArgumentNullException(nameof(fileLoadException));
 				this.Package = package ?? throw new ArgumentNullException(nameof(package));
+				SecondaryPEFiles = package.ResolveMetadataFiles();
 			}
-			public LoadResult(Exception fileLoadException, MetadataFile metadataFile)
+			public LoadResult(Exception fileLoadException, MetadataFile metadataFile, List<PEFile>? secondaryFiles = null)
 			{
 				this.FileLoadException = fileLoadException ?? throw new ArgumentNullException(nameof(fileLoadException));
 				this.MetadataFile = metadataFile ?? throw new ArgumentNullException(nameof(metadataFile));
+				SecondaryPEFiles = secondaryFiles ?? [];
 			}
 		}
 
@@ -129,12 +136,12 @@ namespace ICSharpCode.ILSpyX
 		/// 
 		/// Throws an exception if the file does not contain any .NET metadata (e.g. file of unknown format).
 		/// </summary>
-		public async Task<string> GetTargetFrameworkIdAsync()
+		public async Task<string> GetTargetFrameworkIdAsync(PEFile? fileOverride = null)
 		{
 			var value = LazyInit.VolatileRead(ref targetFrameworkId);
 			if (value == null)
 			{
-				var assembly = await GetPEFileAsync().ConfigureAwait(false);
+				var assembly = fileOverride ?? await GetPEFileAsync().ConfigureAwait(false);
 				value = assembly.DetectTargetFrameworkId() ?? string.Empty;
 				value = LazyInit.GetOrSet(ref targetFrameworkId, value);
 			}
@@ -214,6 +221,27 @@ namespace ICSharpCode.ILSpyX
 			{
 				System.Diagnostics.Trace.TraceError(ex.ToString());
 				return null;
+			}
+		}
+
+		public async Task<List<PEFile>> GetAllPEFilesAsync()
+		{
+			try
+			{
+				var loadResult = await loadingTask.ConfigureAwait(false);
+				if (loadResult.PEFile != null)
+				{
+					var result = new List<PEFile> { loadResult.PEFile };
+					result.AddRange(loadResult.SecondaryPEFiles);
+					return result;
+				}
+				
+				return loadResult.SecondaryPEFiles;
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Trace.TraceError(ex.ToString());
+				return new List<PEFile>();
 			}
 		}
 
@@ -667,15 +695,17 @@ namespace ICSharpCode.ILSpyX
 				// Module does not exist on disk, look for one with a matching name in the assemblylist:
 				foreach (LoadedAssembly loaded in alreadyLoadedAssemblies.Assemblies)
 				{
-					var module = await loaded.GetPEFileOrNullAsync().ConfigureAwait(false);
-					var reader = module?.Metadata;
-					if (reader == null || reader.IsAssembly)
-						continue;
-					var moduleDef = reader.GetModuleDefinition();
-					if (moduleName.Equals(reader.GetString(moduleDef.Name), StringComparison.OrdinalIgnoreCase))
+					foreach (var module in await loaded.GetAllPEFilesAsync())
 					{
-						referenceLoadInfo.AddMessageOnce(moduleName, MessageKind.Info, "Success - Found in Assembly List");
-						return module;
+						var reader = module.Metadata;
+						if (reader.IsAssembly)
+							continue;
+						var moduleDef = reader.GetModuleDefinition();
+						if (moduleName.Equals(reader.GetString(moduleDef.Name), StringComparison.OrdinalIgnoreCase))
+						{
+							referenceLoadInfo.AddMessageOnce(moduleName, MessageKind.Info, "Success - Found in Assembly List");
+							return module;
+						}
 					}
 				}
 

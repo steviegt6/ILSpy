@@ -83,22 +83,22 @@ namespace ICSharpCode.ILSpyX
 			{
 				try
 				{
-					var module = await loaded.GetPEFileOrNullAsync().ConfigureAwait(false);
-					if (module == null)
-						continue;
-					var reader = module.Metadata;
-					if (reader == null || !reader.IsAssembly)
-						continue;
-					string tfm = await loaded.GetTargetFrameworkIdAsync().ConfigureAwait(false);
-					if (tfm.StartsWith(".NETFramework,Version=v4.", StringComparison.Ordinal))
+					foreach (var module in await loaded.GetAllPEFilesAsync())
 					{
-						tfm = ".NETFramework,Version=v4";
-					}
-					string key = tfm + ";"
-						+ (shortNames ? module.Name : module.FullName);
-					if (!result.ContainsKey(key))
-					{
-						result.Add(key, module);
+						var reader = module.Metadata;
+						if (!reader.IsAssembly)
+							continue;
+						string tfm = await loaded.GetTargetFrameworkIdAsync(module).ConfigureAwait(false);
+						if (tfm.StartsWith(".NETFramework,Version=v4.", StringComparison.Ordinal))
+						{
+							tfm = ".NETFramework,Version=v4";
+						}
+						string key = tfm + ";"
+						                 + (shortNames ? module.Name : module.FullName);
+						if (!result.ContainsKey(key))
+						{
+							result.Add(key, module);
+						}
 					}
 				}
 				catch (BadImageFormatException)
@@ -117,26 +117,28 @@ namespace ICSharpCode.ILSpyX
 			{
 				try
 				{
-					var module = await loaded.GetPEFileOrNullAsync().ConfigureAwait(false);
-					var reader = module?.Metadata;
-					if (reader == null || !reader.IsAssembly)
-						continue;
-					var asmDef = reader.GetAssemblyDefinition();
-					var asmDefName = reader.GetString(asmDef.Name);
-
-					var line = (module!, version: asmDef.Version);
-
-					if (!result.TryGetValue(asmDefName, out var existing))
+					foreach (var module in await loaded.GetAllPEFilesAsync())
 					{
-						existing = new List<(PEFile module, Version version)>();
-						result.Add(asmDefName, existing);
-						existing.Add(line);
-						continue;
-					}
+						var reader = module.Metadata;
+						if (!reader.IsAssembly)
+							continue;
+						var asmDef = reader.GetAssemblyDefinition();
+						var asmDefName = reader.GetString(asmDef.Name);
 
-					int index = existing.BinarySearch(line.version, l => l.version);
-					index = index < 0 ? ~index : index + 1;
-					existing.Insert(index, line);
+						var line = (module!, version: asmDef.Version);
+
+						if (!result.TryGetValue(asmDefName, out var existing))
+						{
+							existing = new List<(PEFile module, Version version)>();
+							result.Add(asmDefName, existing);
+							existing.Add(line);
+							continue;
+						}
+
+						int index = existing.BinarySearch(line.version, l => l.version);
+						index = index < 0 ? ~index : index + 1;
+						existing.Insert(index, line);
+					}
 				}
 				catch (BadImageFormatException)
 				{

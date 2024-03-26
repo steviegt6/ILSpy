@@ -102,6 +102,33 @@ namespace ICSharpCode.ILSpyX
 			}
 		}
 
+		public List<PEFile> ResolveMetadataFiles()
+		{
+			var dlls = Entries.Where(e => e.FullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)).ToList();
+			var result = new List<PEFile>(dlls.Count);
+			
+			foreach (var entry in dlls)
+			{
+				if (entry.TryOpenStream() is not { } stream)
+					continue;
+
+				try
+				{
+					var asm = new PEFile(entry.Name, stream);
+					if (asm.IsAssembly)
+					{
+						result.Add(asm);
+					}
+				}
+				catch
+				{
+					// Somewhat expected...
+				}
+			}
+			
+			return result;
+		}
+
 		public static LoadedPackage FromZipFile(string file)
 		{
 			Debug.WriteLine($"LoadedPackage.FromZipFile({file})");
