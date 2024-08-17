@@ -62,6 +62,7 @@
     </EmbeddedResource>
     <Resource Include="Images\NuGet.png" />
     <Resource Include="Images\ILSpy.ico" />
+    <Resource Include="Images\TML.png" />
     <EmbeddedResource Include="TextView\CSharp-Mode.xshd" />
     <EmbeddedResource Include="TextView\ILAsm-Mode.xshd" />
     <EmbeddedResource Include="TextView\Asm-Mode.xshd" />
@@ -117,6 +118,7 @@
     <SortResXInput Include="Properties\*.resx" />
     <SortResXInput Include="..\ILSpy.AddIn\*.resx" />
     <SortResXInput Include="..\ILSpy.ReadyToRun\Properties\*.resx" />
+    <None Remove="Images\TML.png" />
     <SortResXStamp Include="obj\sort-resx.stamp" />
   </ItemGroup>
 

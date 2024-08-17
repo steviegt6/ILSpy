@@ -473,7 +473,7 @@ namespace ICSharpCode.ILSpy.TextView
 
 			IEntity? ResolveReference(string idString)
 			{
-				return MainWindow.FindEntityInRelevantAssemblies(idString, MainWindow.Instance.CurrentAssemblyList.GetAssemblies());
+				return MainWindow.FindEntityInRelevantAssemblies(idString, MainWindow.Instance.CurrentAssemblyList.GetAllLoadedAssembles());
 			}
 		}
 

@@ -158,6 +158,11 @@ namespace ICSharpCode.ILSpyX
 			return GetSnapshot().GetAllAssembliesAsync();
 		}
 
+		public LoadedAssembly[] GetAllLoadedAssembles()
+		{
+			return GetAllAssemblies().ConfigureAwait(true).GetAwaiter().GetResult().ToArray();
+		}
+
 		public int Count {
 			get {
 				lock (lockObj)

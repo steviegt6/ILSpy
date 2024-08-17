@@ -31,6 +31,10 @@ using System.Threading.Tasks;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Metadata;
 
+using Tomat.FNB.TMOD;
+using Tomat.FNB.TMOD.Converters.Extractors;
+using Tomat.FNB.TMOD.Utilities;
+
 namespace ICSharpCode.ILSpyX
 {
 	/// <summary>
@@ -42,6 +46,7 @@ namespace ICSharpCode.ILSpyX
 		{
 			Zip,
 			Bundle,
+			Tmod,
 		}
 
 		/// <summary>
@@ -134,6 +139,16 @@ namespace ICSharpCode.ILSpyX
 			{
 				view?.Dispose();
 			}
+		}
+
+		public static LoadedPackage? FromTmodFile(string fileName, out byte[]? imageSource)
+		{
+			using var fs = File.OpenRead(fileName);
+			var tmod = SerializableTmodFile.FromStream(fs);
+			var convertedTmod = tmod.Convert([RawimgExtractor.GetRawimgExtractor(), new InfoExtractor()]);
+			var result = new LoadedPackage(PackageKind.Tmod, convertedTmod.Entries.Select(e => new TmodEntry(fileName, e)));
+			_ = convertedTmod.Entries.TryGetValue("icon_small.png", out imageSource) || convertedTmod.Entries.TryGetValue("icon.png", out imageSource);
+			return result;
 		}
 
 		/// <summary>
@@ -239,6 +254,34 @@ namespace ICSharpCode.ILSpyX
 			public override long? TryGetLength()
 			{
 				return entry.Size;
+			}
+		}
+
+		sealed class TmodEntry : PackageEntry
+		{
+			readonly string tmodFile;
+			readonly string path;
+			readonly byte[] data;
+
+
+			public TmodEntry(string tmodFile, KeyValuePair<string, byte[]> entry)
+			{
+				this.tmodFile = tmodFile;
+				path = entry.Key;
+				data = entry.Value;
+			}
+
+			public override string Name => path;
+			public override string FullName => $"tmod://{tmodFile};{Name}";
+
+			public override Stream TryOpenStream()
+			{
+				return new MemoryStream(data);
+			}
+
+			public override long? TryGetLength()
+			{
+				return data.Length;
 			}
 		}
 	}

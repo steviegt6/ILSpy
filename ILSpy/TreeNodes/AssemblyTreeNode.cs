@@ -42,6 +42,8 @@ using Microsoft.Win32;
 
 using TypeDefinitionHandle = System.Reflection.Metadata.TypeDefinitionHandle;
 using ICSharpCode.ILSpyX.TreeView;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace ICSharpCode.ILSpy.TreeNodes
 {
@@ -98,6 +100,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					{
 						return loadResult.Package.Kind switch {
 							LoadedPackage.PackageKind.Zip => Images.NuGet,
+							LoadedPackage.PackageKind.Tmod => GetPngImageSource(loadResult.CustomIcon, Images.TML),
 							_ => Images.Library,
 						};
 					}
@@ -118,6 +121,22 @@ namespace ICSharpCode.ILSpy.TreeNodes
 				else
 				{
 					return Images.FindAssembly;
+				}
+
+				ImageSource GetPngImageSource(object obj, ImageSource fallback)
+				{
+					if (obj is not byte[] bytes || bytes.Length == 0)
+					{
+						return fallback;
+					}
+
+					var image = new BitmapImage();
+					image.BeginInit();
+					image.StreamSource = new MemoryStream(bytes);
+					image.CacheOption = BitmapCacheOption.OnLoad;
+					image.EndInit();
+					image.Freeze();
+					return image;
 				}
 			}
 		}
@@ -516,6 +535,9 @@ namespace ICSharpCode.ILSpy.TreeNodes
 				case LoadedPackage.PackageKind.Bundle:
 					var header = package.BundleHeader;
 					output.WriteLine($"// File format: .NET bundle {header.MajorVersion}.{header.MinorVersion}");
+					break;
+				case LoadedPackage.PackageKind.Tmod:
+					output.WriteLine("// File format: .tmod file");
 					break;
 			}
 			output.WriteLine();
