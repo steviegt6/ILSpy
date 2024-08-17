@@ -197,7 +197,8 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			{
 				foreach (AssemblyTreeNode node in this.Children)
 				{
-					return SearchNodesRecursively(node, asm);
+					if (SearchNodesRecursively(node, asm) is { } result)
+						return result;
 				}
 			}
 			return null;

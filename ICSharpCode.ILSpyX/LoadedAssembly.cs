@@ -313,6 +313,20 @@ namespace ICSharpCode.ILSpyX
 
 		async Task<LoadResult> LoadAsync(Task<Stream?>? streamTask)
 		{
+			try
+			{
+				if (Directory.Exists(fileName))
+				{
+					var directory = LoadedPackage.FromDirectory(fileName);
+					directory.LoadedAssembly = this;
+					return new LoadResult { Package = directory };
+				}
+			}
+			finally
+			{
+				// Not a directory; should never throw but allow propagation?
+			}
+
 			using var stream = await PrepareStream();
 			FileLoadContext settings = new FileLoadContext(applyWinRTProjections, ParentBundle);
 
