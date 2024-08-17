@@ -411,7 +411,7 @@ namespace ICSharpCode.ILSpyX
 			{
 				if (assemblies.TryGetValue(name, out var asm))
 					return asm;
-				var entry = Entries.FirstOrDefault(e => string.Equals(name, e.Name, StringComparison.OrdinalIgnoreCase));
+				var entry = GetAllEntries().FirstOrDefault(e => string.Equals(name, e.Name, StringComparison.OrdinalIgnoreCase));
 				if (entry != null)
 				{
 					asm = new LoadedAssembly(
@@ -429,6 +429,22 @@ namespace ICSharpCode.ILSpyX
 				}
 				assemblies.Add(name, asm);
 				return asm;
+			}
+		}
+
+		IEnumerable<PackageEntry> GetAllEntries()
+		{
+			return GetAllEntriesRecursive(this);
+
+			IEnumerable<PackageEntry> GetAllEntriesRecursive(PackageFolder folder)
+			{
+				foreach (var entry in folder.Entries)
+					yield return entry;
+				foreach (var subfolder in folder.Folders)
+				{
+					foreach (var entry in GetAllEntriesRecursive(subfolder))
+						yield return entry;
+				}
 			}
 		}
 	}
