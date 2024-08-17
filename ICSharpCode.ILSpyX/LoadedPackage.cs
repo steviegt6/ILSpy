@@ -47,7 +47,6 @@ namespace ICSharpCode.ILSpyX
 			Zip,
 			Bundle,
 			Tmod,
-			Directory,
 		}
 
 		/// <summary>
@@ -150,13 +149,6 @@ namespace ICSharpCode.ILSpyX
 			var result = new LoadedPackage(PackageKind.Tmod, convertedTmod.Entries.Select(e => new TmodEntry(fileName, e)));
 			_ = convertedTmod.Entries.TryGetValue("icon_small.png", out imageSource) || convertedTmod.Entries.TryGetValue("icon.png", out imageSource);
 			return result;
-		}
-
-		public static LoadedPackage FromDirectory(string directory)
-		{
-			if (!Directory.Exists(directory))
-				throw new DirectoryNotFoundException(directory);
-			return new LoadedPackage(PackageKind.Directory, Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Select(x => new DirectoryEntry(directory, x)));
 		}
 
 		/// <summary>
@@ -289,33 +281,6 @@ namespace ICSharpCode.ILSpyX
 			public override long? TryGetLength()
 			{
 				return data.Length;
-			}
-		}
-
-		sealed class DirectoryEntry : PackageEntry
-		{
-			readonly string directory;
-			readonly string relativePath;
-			readonly FileInfo file;
-
-			public DirectoryEntry(string directory, string fullPath)
-			{
-				this.directory = directory;
-				relativePath = fullPath[(directory.Length + 1)..];
-				file = new FileInfo(fullPath);
-			}
-
-			public override string Name => relativePath;
-			public override string FullName => $"{directory}{Path.DirectorySeparatorChar}{Name}";
-
-			public override Stream TryOpenStream()
-			{
-				return file.OpenRead();
-			}
-
-			public override long? TryGetLength()
-			{
-				return file.Length;
 			}
 		}
 	}

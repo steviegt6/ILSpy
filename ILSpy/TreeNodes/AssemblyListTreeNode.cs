@@ -28,7 +28,6 @@ using ICSharpCode.Decompiler.Util;
 using ICSharpCode.ILSpyX;
 using ICSharpCode.ILSpyX.TreeView.PlatformAbstractions;
 using ICSharpCode.ILSpyX.TreeView;
-using System.Collections.Generic;
 
 namespace ICSharpCode.ILSpy.TreeNodes
 {
@@ -177,7 +176,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			return FindAssemblyNode(module.GetLoadedAssembly());
 		}
 
-		public AssemblyTreeNode FindAssemblyNode(LoadedAssembly asm, bool lenient = false)
+		public AssemblyTreeNode FindAssemblyNode(LoadedAssembly asm)
 		{
 			if (asm == null)
 				return null;
@@ -188,56 +187,40 @@ namespace ICSharpCode.ILSpy.TreeNodes
 				if (bundle == null)
 					return null;
 				bundle.EnsureLazyChildren();
-				foreach (var node in ExpandAndGetChildren(bundle).OfType<AssemblyTreeNode>())
+				foreach (var node in ILSpyX.TreeView.TreeTraversal.PreOrder(bundle.Children, ExpandAndGetChildren).OfType<AssemblyTreeNode>())
 				{
 					if (node.LoadedAssembly == asm)
 						return node;
 				}
 			}
-			foreach (AssemblyTreeNode node in this.Children)
+			else
 			{
-				if (SearchNodesRecursively(node, asm, lenient) is { } result)
-					return result;
-			}
-			return lenient ? null : FindAssemblyNode(asm, true);
-
-			static IEnumerable<SharpTreeNode> ExpandAndGetChildren(SharpTreeNode node)
-			{
-				// if (node is not PackageFolderTreeNode)
-				//     return [];
-
-				// node.EnsureLazyChildren();
-				// return node.Children;
-				return ExpandAndGetChildrenRecursively(node);
-
-				IEnumerable<SharpTreeNode> ExpandAndGetChildrenRecursively(SharpTreeNode node)
+				foreach (AssemblyTreeNode node in this.Children)
 				{
-					// if (node is not PackageFolderTreeNode)
-					// 	yield break;
-
-					yield return node;
-
-					node.EnsureLazyChildren();
-					foreach (var child in node.Children)
-					{
-						yield return child;
-
-						foreach (var grandChild in ExpandAndGetChildrenRecursively(child))
-							yield return grandChild;
-					}
+					if (SearchNodesRecursively(node, asm) is { } result)
+						return result;
 				}
 			}
+			return null;
 
-			static AssemblyTreeNode SearchNodesRecursively(AssemblyTreeNode node, LoadedAssembly asm, bool lenient)
+			static SharpTreeNodeCollection ExpandAndGetChildren(SharpTreeNode node)
 			{
-				if (node.LoadedAssembly == asm || (lenient && node.LoadedAssembly.Text == asm.Text))
+				if (node is not PackageFolderTreeNode)
+					return null;
+				node.EnsureLazyChildren();
+				return node.Children;
+			}
+
+			static AssemblyTreeNode SearchNodesRecursively(AssemblyTreeNode node, LoadedAssembly asm)
+			{
+				if (node.LoadedAssembly == asm)
 					return node;
 				node.EnsureLazyChildren();
 				foreach (var child in node.Children)
 				{
 					if (child is AssemblyTreeNode asmNode)
 					{
-						var result = SearchNodesRecursively(asmNode, asm, lenient);
+						var result = SearchNodesRecursively(asmNode, asm);
 						if (result != null)
 							return result;
 					}
