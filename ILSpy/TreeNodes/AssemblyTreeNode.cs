@@ -98,6 +98,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					{
 						return loadResult.Package.Kind switch {
 							LoadedPackage.PackageKind.Zip => Images.NuGet,
+							LoadedPackage.PackageKind.Tmod => Images.TML,
 							_ => Images.Library,
 						};
 					}
@@ -518,7 +519,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					output.WriteLine($"// File format: .NET bundle {header.MajorVersion}.{header.MinorVersion}");
 					break;
 				case LoadedPackage.PackageKind.Tmod:
-					output.WriteLine("// File format: .tmod file archive");
+					output.WriteLine("// File format: .tmod file");
 					break;
 			}
 			output.WriteLine();
