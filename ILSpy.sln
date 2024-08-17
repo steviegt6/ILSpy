@@ -36,6 +36,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ICSharpCode.ILSpyX", "ICSha
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ICSharpCode.BamlDecompiler", "ICSharpCode.BamlDecompiler\ICSharpCode.BamlDecompiler.csproj", "{81A30182-3378-4952-8880-F44822390040}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tomat.FNB.TMOD", "fnb\src\Tomat.FNB.TMOD\Tomat.FNB.TMOD.csproj", "{12BD5E4B-C18F-408D-875E-7882C13837B0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tomat.FNB.Common", "fnb\src\Tomat.FNB.Common\Tomat.FNB.Common.csproj", "{7190C43B-F115-47C5-8BBC-5E5DB18B579E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -94,6 +98,14 @@ Global
 		{81A30182-3378-4952-8880-F44822390040}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81A30182-3378-4952-8880-F44822390040}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81A30182-3378-4952-8880-F44822390040}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12BD5E4B-C18F-408D-875E-7882C13837B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12BD5E4B-C18F-408D-875E-7882C13837B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12BD5E4B-C18F-408D-875E-7882C13837B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12BD5E4B-C18F-408D-875E-7882C13837B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7190C43B-F115-47C5-8BBC-5E5DB18B579E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7190C43B-F115-47C5-8BBC-5E5DB18B579E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7190C43B-F115-47C5-8BBC-5E5DB18B579E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7190C43B-F115-47C5-8BBC-5E5DB18B579E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
