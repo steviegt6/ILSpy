@@ -12,8 +12,8 @@ namespace ICSharpCode.ILSpyX.FileLoaders
 				return Task.FromResult<LoadResult?>(null);
 			}
 
-			var tmod = LoadedPackage.FromTmodFile(fileName);
-			var result = tmod != null ? new LoadResult { Package = tmod } : null;
+			var tmod = LoadedPackage.FromTmodFile(fileName, out var imageSource);
+			var result = tmod != null ? new LoadResult { Package = tmod, CustomIcon = imageSource } : null;
 			return Task.FromResult(result);
 		}
 	}

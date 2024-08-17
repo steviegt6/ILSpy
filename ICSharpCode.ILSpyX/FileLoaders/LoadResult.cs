@@ -29,6 +29,7 @@ namespace ICSharpCode.ILSpyX.FileLoaders
 		public MetadataFile? MetadataFile { get; init; }
 		public Exception? FileLoadException { get; init; }
 		public LoadedPackage? Package { get; init; }
+		public object? CustomIcon { get; init; }
 
 		public bool IsSuccess => FileLoadException == null;
 	}

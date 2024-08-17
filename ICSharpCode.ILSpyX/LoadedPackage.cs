@@ -141,12 +141,13 @@ namespace ICSharpCode.ILSpyX
 			}
 		}
 
-		public static LoadedPackage? FromTmodFile(string fileName)
+		public static LoadedPackage? FromTmodFile(string fileName, out byte[]? imageSource)
 		{
 			using var fs = File.OpenRead(fileName);
 			var tmod = SerializableTmodFile.FromStream(fs);
 			var convertedTmod = tmod.Convert([RawimgExtractor.GetRawimgExtractor(), new InfoExtractor()]);
 			var result = new LoadedPackage(PackageKind.Tmod, convertedTmod.Entries.Select(e => new TmodEntry(fileName, e)));
+			_ = convertedTmod.Entries.TryGetValue("icon_small.png", out imageSource) || convertedTmod.Entries.TryGetValue("icon.png", out imageSource);
 			return result;
 		}
 
