@@ -44,6 +44,7 @@ namespace ICSharpCode.ILSpyX.FileLoaders
 			Register(new MetadataFileLoader());
 			Register(new BundleFileLoader());
 			Register(new ArchiveFileLoader());
+			Register(new TmodFileLoader());
 		}
 	}
 }

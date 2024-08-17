@@ -517,6 +517,9 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					var header = package.BundleHeader;
 					output.WriteLine($"// File format: .NET bundle {header.MajorVersion}.{header.MinorVersion}");
 					break;
+				case LoadedPackage.PackageKind.Tmod:
+					output.WriteLine("// File format: .tmod file archive");
+					break;
 			}
 			output.WriteLine();
 			output.WriteLine("Entries:");
