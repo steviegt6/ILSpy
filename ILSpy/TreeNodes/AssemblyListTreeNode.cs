@@ -197,8 +197,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			{
 				foreach (AssemblyTreeNode node in this.Children)
 				{
-					if (node.LoadedAssembly == asm)
-						return node;
+					return SearchNodesRecursively(node, asm);
 				}
 			}
 			return null;
@@ -209,6 +208,23 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					return null;
 				node.EnsureLazyChildren();
 				return node.Children;
+			}
+
+			static AssemblyTreeNode SearchNodesRecursively(AssemblyTreeNode node, LoadedAssembly asm)
+			{
+				if (node.LoadedAssembly == asm)
+					return node;
+				node.EnsureLazyChildren();
+				foreach (var child in node.Children)
+				{
+					if (child is AssemblyTreeNode asmNode)
+					{
+						var result = SearchNodesRecursively(asmNode, asm);
+						if (result != null)
+							return result;
+					}
+				}
+				return null;
 			}
 		}
 
