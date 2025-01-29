@@ -16,19 +16,42 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Composition;
 using System.Windows.Input;
 
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpy.Properties;
+
+using Microsoft.Win32;
 
 namespace ICSharpCode.ILSpy
 {
 	[ExportToolbarCommand(ToolTip = nameof(Resources.Open), ToolbarIcon = "Images/Open", ToolbarCategory = nameof(Resources.Open), ToolbarOrder = 0)]
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._File), Header = nameof(Resources._Open), MenuIcon = "Images/Open", MenuCategory = nameof(Resources.Open), MenuOrder = 0)]
+	[Shared]
 	sealed class OpenCommand : CommandWrapper
 	{
-		public OpenCommand()
+		private readonly AssemblyTreeModel assemblyTreeModel;
+
+		public OpenCommand(AssemblyTreeModel assemblyTreeModel)
 			: base(ApplicationCommands.Open)
 		{
+			this.assemblyTreeModel = assemblyTreeModel;
+		}
+
+		protected override void OnExecute(object sender, ExecutedRoutedEventArgs e)
+		{
+			e.Handled = true;
+			OpenFileDialog dlg = new OpenFileDialog {
+				Filter = ".NET assemblies|*.dll;*.exe;*.winmd;*.wasm|Nuget Packages (*.nupkg)|*.nupkg|Portable Program Database (*.pdb)|*.pdb|All files|*.*",
+				Multiselect = true,
+				RestoreDirectory = true
+			};
+
+			if (dlg.ShowDialog() == true)
+			{
+				assemblyTreeModel.OpenFiles(dlg.FileNames);
+			}
 		}
 	}
 }

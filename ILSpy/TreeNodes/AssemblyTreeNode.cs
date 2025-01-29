@@ -18,32 +18,35 @@
 
 using System;
 using System.Collections.Generic;
+using System.Composition;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp.ProjectDecompiler;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
+using ICSharpCode.ILSpy.AssemblyTree;
+using ICSharpCode.ILSpy.Controls.TreeView;
+using ICSharpCode.ILSpy.Docking;
 using ICSharpCode.ILSpy.Metadata;
 using ICSharpCode.ILSpy.Properties;
 using ICSharpCode.ILSpy.ViewModels;
 using ICSharpCode.ILSpyX;
 using ICSharpCode.ILSpyX.FileLoaders;
 using ICSharpCode.ILSpyX.PdbProvider;
-using ICSharpCode.ILSpy.Controls.TreeView;
+using ICSharpCode.ILSpyX.TreeView;
 using ICSharpCode.ILSpyX.TreeView.PlatformAbstractions;
 
 using Microsoft.Win32;
 
 using TypeDefinitionHandle = System.Reflection.Metadata.TypeDefinitionHandle;
-using ICSharpCode.ILSpyX.TreeView;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace ICSharpCode.ILSpy.TreeNodes
 {
@@ -187,6 +190,12 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			}
 		}
 
+		public void UpdateToolTip()
+		{
+			tooltip = null;
+			RaisePropertyChanged(nameof(ToolTip));
+		}
+
 		public override bool ShowExpander {
 			get { return !LoadedAssembly.HasLoadError; }
 		}
@@ -227,10 +236,8 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					switch (loadResult.MetadataFile.Kind)
 					{
 						case MetadataFile.MetadataFileKind.PortableExecutable:
-							LoadChildrenForPEFile(loadResult.MetadataFile);
-							break;
 						case MetadataFile.MetadataFileKind.WebCIL:
-							LoadChildrenForWebCilFile((WebCilFile)loadResult.MetadataFile);
+							LoadChildrenForExecutableFile(loadResult.MetadataFile);
 							break;
 						default:
 							var metadata = loadResult.MetadataFile;
@@ -254,7 +261,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			}
 		}
 
-		void LoadChildrenForPEFile(MetadataFile module)
+		void LoadChildrenForExecutableFile(MetadataFile module)
 		{
 			typeSystem = LoadedAssembly.GetTypeSystemOrNull();
 			var assembly = (MetadataModule)typeSystem.MainModule;
@@ -273,73 +280,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 				ns.Children.Clear();
 			}
 			namespaces.Clear();
-			bool useNestedStructure = MainWindow.Instance.CurrentDisplaySettings.UseNestedNamespaceNodes;
-			foreach (var type in assembly.TopLevelTypeDefinitions.OrderBy(t => t.ReflectionName, NaturalStringComparer.Instance))
-			{
-				var ns = GetOrCreateNamespaceTreeNode(type.Namespace);
-				TypeTreeNode node = new TypeTreeNode(type, this);
-				typeDict[(TypeDefinitionHandle)type.MetadataToken] = node;
-				ns.Children.Add(node);
-			}
-			foreach (NamespaceTreeNode ns in namespaces.Values
-				.Where(ns => ns.Children.Count > 0 && ns.Parent == null)
-				.OrderBy(n => n.Name, NaturalStringComparer.Instance))
-			{
-				this.Children.Add(ns);
-				SetPublicAPI(ns);
-			}
-
-			NamespaceTreeNode GetOrCreateNamespaceTreeNode(string @namespace)
-			{
-				if (!namespaces.TryGetValue(@namespace, out NamespaceTreeNode ns))
-				{
-					if (useNestedStructure)
-					{
-						int decimalIndex = @namespace.LastIndexOf('.');
-						if (decimalIndex < 0)
-						{
-							var escapedNamespace = Language.EscapeName(@namespace);
-							ns = new NamespaceTreeNode(escapedNamespace);
-						}
-						else
-						{
-							var parentNamespaceTreeNode = GetOrCreateNamespaceTreeNode(@namespace.Substring(0, decimalIndex));
-							var escapedInnerNamespace = Language.EscapeName(@namespace.Substring(decimalIndex + 1));
-							ns = new NamespaceTreeNode(escapedInnerNamespace);
-							parentNamespaceTreeNode.Children.Add(ns);
-						}
-					}
-					else
-					{
-						var escapedNamespace = Language.EscapeName(@namespace);
-						ns = new NamespaceTreeNode(escapedNamespace);
-					}
-					namespaces.Add(@namespace, ns);
-				}
-				return ns;
-			}
-		}
-
-		void LoadChildrenForWebCilFile(WebCilFile module)
-		{
-			typeSystem = LoadedAssembly.GetTypeSystemOrNull();
-			var assembly = (MetadataModule)typeSystem.MainModule;
-			this.Children.Add(new MetadataTreeNode(module, Resources.Metadata));
-			Decompiler.DebugInfo.IDebugInfoProvider debugInfo = LoadedAssembly.GetDebugInfoOrNull();
-			if (debugInfo is PortableDebugInfoProvider ppdb
-				&& ppdb.GetMetadataReader() is System.Reflection.Metadata.MetadataReader reader)
-			{
-				this.Children.Add(new MetadataTreeNode(ppdb.ToMetadataFile(), $"Debug Metadata ({(ppdb.IsEmbedded ? "Embedded" : "From portable PDB")})"));
-			}
-			this.Children.Add(new ReferenceFolderTreeNode(module, this));
-			if (module.Resources.Any())
-				this.Children.Add(new ResourceListTreeNode(module));
-			foreach (NamespaceTreeNode ns in namespaces.Values)
-			{
-				ns.Children.Clear();
-			}
-			namespaces.Clear();
-			bool useNestedStructure = MainWindow.Instance.CurrentDisplaySettings.UseNestedNamespaceNodes;
+			bool useNestedStructure = SettingsService.DisplaySettings.UseNestedNamespaceNodes;
 			foreach (var type in assembly.TopLevelTypeDefinitions.OrderBy(t => t.ReflectionName, NaturalStringComparer.Instance))
 			{
 				var ns = GetOrCreateNamespaceTreeNode(type.Namespace);
@@ -461,7 +402,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			return dataObject;
 		}
 
-		public override FilterResult Filter(FilterSettings settings)
+		public override FilterResult Filter(LanguageSettings settings)
 		{
 			if (settings.SearchTermMatches(LoadedAssembly.ShortName))
 				return FilterResult.Match;
@@ -560,7 +501,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			dlg.Filter = language.Name + " project|*" + language.ProjectFileExtension + "|" + language.Name + " single file|*" + language.FileExtension + "|All files|*.*";
 			if (dlg.ShowDialog() == true)
 			{
-				DecompilationOptions options = MainWindow.Instance.CreateDecompilationOptions();
+				var options = DockWorkspace.ActiveTabPage.CreateDecompilationOptions();
 				options.FullDecompilation = true;
 				if (dlg.FilterIndex == 1)
 				{
@@ -593,6 +534,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 	}
 
 	[ExportContextMenuEntry(Header = nameof(Resources._Remove), Icon = "images/Delete")]
+	[Shared]
 	sealed class RemoveAssembly : IContextMenuEntry
 	{
 		public bool IsVisible(TextViewContext context)
@@ -619,7 +561,8 @@ namespace ICSharpCode.ILSpy.TreeNodes
 	}
 
 	[ExportContextMenuEntry(Header = nameof(Resources._Reload), Icon = "images/Refresh")]
-	sealed class ReloadAssembly : IContextMenuEntry
+	[Shared]
+	sealed class ReloadAssembly(AssemblyTreeModel assemblyTreeModel) : IContextMenuEntry
 	{
 		public bool IsVisible(TextViewContext context)
 		{
@@ -642,18 +585,19 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			{
 				foreach (var node in context.SelectedTreeNodes)
 				{
-					paths.Add(MainWindow.GetPathForNode(node));
+					paths.Add(AssemblyTreeModel.GetPathForNode(node));
 					var la = ((AssemblyTreeNode)node).LoadedAssembly;
 					la.AssemblyList.ReloadAssembly(la.FileName);
 				}
 			}
-			MainWindow.Instance.SelectNodes(paths.Select(p => MainWindow.Instance.FindNodeByPath(p, true)).ToArray());
-			MainWindow.Instance.RefreshDecompiledView();
+			assemblyTreeModel.SelectNodes(paths.Select(p => assemblyTreeModel.FindNodeByPath(p, true)).ToArray());
+			assemblyTreeModel.RefreshDecompiledView();
 		}
 	}
 
 	[ExportContextMenuEntry(Header = nameof(Resources._LoadDependencies), Category = nameof(Resources.Dependencies))]
-	sealed class LoadDependencies : IContextMenuEntry
+	[Shared]
+	sealed class LoadDependencies(AssemblyTreeModel assemblyTreeModel) : IContextMenuEntry
 	{
 		public bool IsVisible(TextViewContext context)
 		{
@@ -687,12 +631,13 @@ namespace ICSharpCode.ILSpy.TreeNodes
 				}
 			}
 			await Task.WhenAll(tasks);
-			MainWindow.Instance.RefreshDecompiledView();
+			assemblyTreeModel.RefreshDecompiledView();
 		}
 	}
 
 	[ExportContextMenuEntry(Header = nameof(Resources._AddMainList), Category = nameof(Resources.Dependencies))]
-	sealed class AddToMainList : IContextMenuEntry
+	[Shared]
+	sealed class AddToMainList(AssemblyTreeModel assemblyTreeModel) : IContextMenuEntry
 	{
 		public bool IsVisible(TextViewContext context)
 		{
@@ -721,11 +666,13 @@ namespace ICSharpCode.ILSpy.TreeNodes
 					node.RaisePropertyChanged(nameof(ILSpyTreeNode.IsAutoLoaded));
 				}
 			}
-			MainWindow.Instance.CurrentAssemblyList.RefreshSave();
+
+			assemblyTreeModel.AssemblyList.RefreshSave();
 		}
 	}
 
 	[ExportContextMenuEntry(Header = nameof(Resources._OpenContainingFolder), Category = nameof(Resources.Shell))]
+	[Shared]
 	sealed class OpenContainingFolder : IContextMenuEntry
 	{
 		public bool IsVisible(TextViewContext context)
@@ -771,13 +718,14 @@ namespace ICSharpCode.ILSpy.TreeNodes
 				var path = node.LoadedAssembly.FileName;
 				if (File.Exists(path))
 				{
-					MainWindow.ExecuteCommand("explorer.exe", $"/select,\"{path}\"");
+					GlobalUtils.ExecuteCommand("explorer.exe", $"/select,\"{path}\"");
 				}
 			}
 		}
 	}
 
 	[ExportContextMenuEntry(Header = nameof(Resources._OpenCommandLineHere), Category = nameof(Resources.Shell))]
+	[Shared]
 	sealed class OpenCmdHere : IContextMenuEntry
 	{
 		public bool IsVisible(TextViewContext context)
@@ -812,7 +760,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 				var path = Path.GetDirectoryName(node.LoadedAssembly.FileName);
 				if (Directory.Exists(path))
 				{
-					MainWindow.ExecuteCommand("cmd.exe", $"/k \"cd {path}\"");
+					GlobalUtils.ExecuteCommand("cmd.exe", $"/k \"cd {path}\"");
 				}
 			}
 		}

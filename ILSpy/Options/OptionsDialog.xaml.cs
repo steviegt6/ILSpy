@@ -17,121 +17,59 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.ComponentModel.Composition;
-using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
-using System.Xml.Linq;
+using System.Composition;
 
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpy.Properties;
-using ICSharpCode.ILSpyX.Settings;
 
 namespace ICSharpCode.ILSpy.Options
 {
-	public class TabItemViewModel
-	{
-		public TabItemViewModel(string header, UIElement content)
-		{
-			Header = header;
-			Content = content;
-		}
-
-		public string Header { get; }
-		public UIElement Content { get; }
-	}
-
 	/// <summary>
 	/// Interaction logic for OptionsDialog.xaml
 	/// </summary>
-	public partial class OptionsDialog : Window
+	public sealed partial class OptionsDialog
 	{
-
-		readonly Lazy<UIElement, IOptionsMetadata>[] optionPages;
-
-		public OptionsDialog()
+		public OptionsDialog(SettingsService settingsService)
 		{
+			DataContext = new OptionsDialogViewModel(settingsService);
 			InitializeComponent();
-			// These used to have [ImportMany(..., RequiredCreationPolicy = CreationPolicy.NonShared)], so they use their own
-			// ExportProvider instance.
-			// FIXME: Ideally, the export provider should be disposed when it's no longer needed.
-			var ep = App.ExportProviderFactory.CreateExportProvider();
-			this.optionPages = ep.GetExports<UIElement, IOptionsMetadata>("OptionPages").ToArray();
-			ILSpySettings settings = ILSpySettings.Load();
-			foreach (var optionPage in optionPages.OrderBy(p => p.Metadata.Order))
-			{
-				var tabItem = new TabItemViewModel(MainWindow.GetResourceString(optionPage.Metadata.Title), optionPage.Value);
-
-				tabControl.Items.Add(tabItem);
-
-				IOptionPage page = optionPage.Value as IOptionPage;
-				if (page != null)
-					page.Load(settings);
-			}
-		}
-
-		void OKButton_Click(object sender, RoutedEventArgs e)
-		{
-			ILSpySettings.Update(
-				delegate (XElement root) {
-					foreach (var optionPage in optionPages)
-					{
-						IOptionPage page = optionPage.Value as IOptionPage;
-						if (page != null)
-							page.Save(root);
-					}
-				});
-			this.DialogResult = true;
-			Close();
-		}
-
-		private void DefaultsButton_Click(object sender, RoutedEventArgs e)
-		{
-			if (MessageBox.Show(Properties.Resources.ResetToDefaultsConfirmationMessage, "ILSpy", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-			{
-				var page = tabControl.SelectedValue as IOptionPage;
-				if (page != null)
-					page.LoadDefaults();
-			}
 		}
 	}
 
 	public interface IOptionsMetadata
 	{
-		string Title { get; }
 		int Order { get; }
 	}
 
 	public interface IOptionPage
 	{
-		void Load(ILSpySettings settings);
-		void Save(XElement root);
+		string Title { get; }
+
+		void Load(SettingsSnapshot settings);
+
 		void LoadDefaults();
 	}
 
 	[MetadataAttribute]
-	[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-	public class ExportOptionPageAttribute : ExportAttribute
+	[AttributeUsage(AttributeTargets.Class)]
+	public sealed class ExportOptionPageAttribute() : ExportAttribute("OptionPages", typeof(IOptionPage)), IOptionsMetadata
 	{
-		public ExportOptionPageAttribute() : base("OptionPages", typeof(UIElement))
-		{ }
-
-		public string Title { get; set; }
-
 		public int Order { get; set; }
 	}
 
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._View), Header = nameof(Resources._Options), MenuCategory = nameof(Resources.Options), MenuOrder = 999)]
-	sealed class ShowOptionsCommand : SimpleCommand
+	[Shared]
+	sealed class ShowOptionsCommand(AssemblyTreeModel assemblyTreeModel, SettingsService settingsService, MainWindow mainWindow) : SimpleCommand
 	{
 		public override void Execute(object parameter)
 		{
-			OptionsDialog dlg = new OptionsDialog();
-			dlg.Owner = MainWindow.Instance;
+			OptionsDialog dlg = new(settingsService) {
+				Owner = mainWindow
+			};
+
 			if (dlg.ShowDialog() == true)
 			{
-				new RefreshCommand().Execute(parameter);
+				assemblyTreeModel.Refresh();
 			}
 		}
 	}

@@ -32,8 +32,8 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright 2022-$([System.DateTime]::Now.Year) AlphaSierraPapa</Copyright>
     <PackageTags>C# Decompiler ILSpy</PackageTags>
+    <GenerateSBOM>true</GenerateSBOM>
 
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -41,13 +41,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="ILSpy" Key="00240000048000009400000006020000002400005253413100040000010001004dcf3979c4e902efa4dd2163a039701ed5822e6f1134d77737296abbb97bf0803083cfb2117b4f5446a217782f5c7c634f9fe1fc60b4c11d62c5b3d33545036706296d31903ddcf750875db38a8ac379512f51620bb948c94d0831125fbc5fe63707cbb93f48c1459c4d1749eb7ac5e681a2f0d6d7c60fa527a3c0b8f92b02bf" />
     <InternalsVisibleTo Include="ILSpy.Tests" Key="00240000048000009400000006020000002400005253413100040000010001004dcf3979c4e902efa4dd2163a039701ed5822e6f1134d77737296abbb97bf0803083cfb2117b4f5446a217782f5c7c634f9fe1fc60b4c11d62c5b3d33545036706296d31903ddcf750875db38a8ac379512f51620bb948c94d0831125fbc5fe63707cbb93f48c1459c4d1749eb7ac5e681a2f0d6d7c60fa527a3c0b8f92b02bf" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="PackageReadme.md" Pack="true" PackagePath="\" />
   </ItemGroup>
+
+  <!-- https://devblogs.microsoft.com/nuget/enable-repeatable-package-restores-using-a-lock-file/ -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+	<RestoreLockedMode Condition="'$(GITHUB_ACTIONS)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="Properties\AssemblyInfo.template.cs" />
@@ -67,13 +72,32 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.ComponentModel.Composition" />
+    <None Remove="MermaidDiagrammer\html\node_modules\**" />
+    <None Remove="MermaidDiagrammer\html\.eslintrc.js" />
+    <None Remove="MermaidDiagrammer\html\.gitignore" />
+    <None Remove="MermaidDiagrammer\html\class-diagrammer.html" />
+    <None Remove="MermaidDiagrammer\html\gulpfile.js" />
+    <None Remove="MermaidDiagrammer\html\model.json" />
+    <None Remove="MermaidDiagrammer\html\package-lock.json" />
+    <None Remove="MermaidDiagrammer\html\package.json" />
+    <None Remove="MermaidDiagrammer\html\styles.less" />
+    <EmbeddedResource Include="..\ILSpy\Images\ILSpy.ico" Link="MermaidDiagrammer\html\ILSpy.ico" />
+    <EmbeddedResource Include="MermaidDiagrammer\html\script.js" />
+    <EmbeddedResource Include="MermaidDiagrammer\html\styles.css" />
+    <EmbeddedResource Include="MermaidDiagrammer\html\template.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Composition.AttributedModel" />
     <PackageReference Include="System.Reflection.Metadata" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
-    <PackageReference Include="System.Composition" />
     <PackageReference Include="Mono.Cecil" />
     <PackageReference Include="K4os.Compression.LZ4" />
     <PackageReference Include="Microsoft.SourceLink.GitHub">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Sbom.Targets">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -87,6 +111,7 @@
   <Target Name="ILSpyUpdateAssemblyInfo" AfterTargets="ResolveProjectReferences">
     <ReadLinesFromFile ContinueOnError="true" File="..\VERSION">
       <Output TaskParameter="Lines" PropertyName="PackageVersion" />
+      <Output TaskParameter="Lines" PropertyName="SbomGenerationPackageVersion" />
     </ReadLinesFromFile>
   </Target>
 

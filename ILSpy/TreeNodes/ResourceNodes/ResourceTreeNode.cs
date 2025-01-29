@@ -55,7 +55,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 
 		public override object Icon => Images.Resource;
 
-		public override FilterResult Filter(FilterSettings settings)
+		public override FilterResult Filter(LanguageSettings settings)
 		{
 			if (settings.ShowApiLevel == ApiVisibility.PublicOnly && (Resource.Attributes & ManifestResourceAttributes.VisibilityMask) == ManifestResourceAttributes.Private)
 				return FilterResult.Hidden;
@@ -74,7 +74,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			ISmartTextOutput smartOutput = output as ISmartTextOutput;
 			if (smartOutput != null)
 			{
-				smartOutput.AddButton(Images.Save, Resources.Save, delegate { Save(Docking.DockWorkspace.Instance.ActiveTabPage); });
+				smartOutput.AddButton(Images.Save, Resources.Save, delegate { Save(DockWorkspace.ActiveTabPage); });
 				output.WriteLine();
 			}
 		}

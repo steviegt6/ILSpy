@@ -51,8 +51,8 @@ namespace ICSharpCode.ILSpy.TreeNodes
 
 		private IEvent GetEventDefinition()
 		{
-			return ((MetadataModule)EventDefinition.ParentModule.MetadataFile
-				?.GetTypeSystemWithCurrentOptionsOrNull()
+			return ((MetadataModule)EventDefinition.ParentModule?.MetadataFile
+				?.GetTypeSystemWithCurrentOptionsOrNull(SettingsService)
 				?.MainModule)?.GetDefinition((EventDefinitionHandle)EventDefinition.MetadataToken) ?? EventDefinition;
 		}
 
@@ -68,11 +68,11 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			return Images.GetIcon(MemberIcon.Event, MethodTreeNode.GetOverlayIcon(@event.Accessibility), @event.IsStatic);
 		}
 
-		public override FilterResult Filter(FilterSettings settings)
+		public override FilterResult Filter(LanguageSettings settings)
 		{
 			if (settings.ShowApiLevel == ApiVisibility.PublicOnly && !IsPublicAPI)
 				return FilterResult.Hidden;
-			if (settings.SearchTermMatches(EventDefinition.Name) && (settings.ShowApiLevel == ApiVisibility.All || settings.Language.ShowMember(EventDefinition)))
+			if (settings.SearchTermMatches(EventDefinition.Name) && (settings.ShowApiLevel == ApiVisibility.All || LanguageService.Language.ShowMember(EventDefinition)))
 				return FilterResult.Match;
 			else
 				return FilterResult.Hidden;

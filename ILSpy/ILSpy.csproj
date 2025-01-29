@@ -1,5 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -46,10 +45,12 @@
     <PackageReference Include="AvalonEdit" />
     <PackageReference Include="Dirkster.AvalonDock.Themes.VS2013" />
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" />
-    <PackageReference Include="Microsoft.VisualStudio.Composition" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="DataGridExtensions" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" />
     <PackageReference Include="NaturalSort.Extension" />
+    <PackageReference Include="TomsToolbox.Composition.MicrosoftExtensions" />
+    <PackageReference Include="TomsToolbox.Wpf.Composition.AttributedModel" />
     <PackageReference Include="TomsToolbox.Wpf.Styles" />
   </ItemGroup>
 
@@ -57,7 +58,7 @@
     <EmbeddedResource Include="..\doc\ILSpyAboutPage.txt" />
     <EmbeddedResource Include="..\doc\ILSpyAboutPage_zh_Hans.txt" />
     <EmbeddedResource Include="..\doc\third-party-notices.txt" />
-    <EmbeddedResource Include="..\doc\license.txt">
+    <EmbeddedResource Include="..\LICENSE">
       <Link>license.txt</Link>
     </EmbeddedResource>
     <Resource Include="Images\NuGet.png" />
@@ -91,8 +92,13 @@
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <PackageReference Include="Microsoft.DiaSymReader.Converter.Xml" />
-	<PackageReference Include="Microsoft.DiaSymReader" />
-	<PackageReference Include="Microsoft.DiaSymReader.Native" />
+    <PackageReference Include="Microsoft.DiaSymReader" />
+    <PackageReference Include="Microsoft.DiaSymReader.Native" />
+
+    <!-- 4.3.0 of all those have security vulnerabilities, and although only a debug build, we'll override the versions for good measure -->
+    <PackageReference Include="System.Net.Http" />
+    <PackageReference Include="System.Private.Uri" />
+    <PackageReference Include="System.Text.RegularExpressions" />
   </ItemGroup>
 
   <PropertyGroup>

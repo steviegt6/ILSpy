@@ -189,15 +189,16 @@ namespace ICSharpCode.Decompiler.Metadata
 				switch (pair[0].Trim().ToUpperInvariant())
 				{
 					case "VERSION":
-						var versionString = pair[1].TrimStart('v', ' ', '\t');
-						if (identifier == TargetFrameworkIdentifier.NETCoreApp ||
-							identifier == TargetFrameworkIdentifier.NETStandard)
-						{
-							if (versionString.Length == 3)
-								versionString += ".0";
-						}
+						var versionString = pair[1].TrimStart('v', 'V', ' ', '\t');
+
 						if (!Version.TryParse(versionString, out version))
+						{
 							version = null;
+						}
+						else
+						{
+							version = new Version(version.Major, version.Minor, version.Build < 0 ? 0 : version.Build);
+						}
 						// .NET 5 or greater still use ".NETCOREAPP" as TargetFrameworkAttribute value...
 						if (version?.Major >= 5 && identifier == TargetFrameworkIdentifier.NETCoreApp)
 							identifier = TargetFrameworkIdentifier.NET;
@@ -386,11 +387,11 @@ namespace ICSharpCode.Decompiler.Metadata
 		string FindClosestVersionDirectory(string basePath, Version? version)
 		{
 			string? path = null;
-			foreach (var folder in new DirectoryInfo(basePath).GetDirectories().Select(d => DotNetCorePathFinder.ConvertToVersion(d.Name))
+			foreach (var folder in new DirectoryInfo(basePath).GetDirectories().Select(DotNetCorePathFinder.ConvertToVersion)
 				.Where(v => v.Item1 != null).OrderByDescending(v => v.Item1))
 			{
 				if (path == null || version == null || folder.Item1 >= version)
-					path = folder.Item2;
+					path = folder.Item2.Name;
 			}
 			return path ?? version?.ToString() ?? ".";
 		}

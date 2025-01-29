@@ -16,18 +16,30 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Composition;
+using System.Linq;
 using System.Windows.Input;
 
+using ICSharpCode.ILSpy.AssemblyTree;
+using ICSharpCode.ILSpy.Docking;
 using ICSharpCode.ILSpy.Properties;
+using ICSharpCode.ILSpy.TextView;
 
 namespace ICSharpCode.ILSpy
 {
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._File), Header = nameof(Resources._SaveCode), MenuIcon = "Images/Save", MenuCategory = nameof(Resources.Save), MenuOrder = 0)]
-	sealed class SaveCommand : CommandWrapper
+	[Shared]
+	sealed class SaveCommand(AssemblyTreeModel assemblyTreeModel, LanguageService languageService, DockWorkspace dockWorkspace) : CommandWrapper(ApplicationCommands.Save)
 	{
-		public SaveCommand()
-			: base(ApplicationCommands.Save)
+		protected override void OnCanExecute(object sender, CanExecuteRoutedEventArgs e)
 		{
+			e.Handled = true;
+			e.CanExecute = SaveCodeContextMenuEntry.CanExecute(assemblyTreeModel.SelectedNodes.ToList());
+		}
+
+		protected override void OnExecute(object sender, ExecutedRoutedEventArgs e)
+		{
+			SaveCodeContextMenuEntry.Execute(assemblyTreeModel.SelectedNodes.ToList(), languageService, dockWorkspace);
 		}
 	}
 }

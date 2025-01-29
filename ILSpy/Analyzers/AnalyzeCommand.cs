@@ -16,18 +16,21 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
+using System.Composition;
 using System.Linq;
 
-using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpy.Properties;
 using ICSharpCode.ILSpy.TreeNodes;
+
+using TomsToolbox.Composition;
 
 namespace ICSharpCode.ILSpy.Analyzers
 {
 	[ExportContextMenuEntry(Header = nameof(Resources.Analyze), Icon = "Images/Search", Category = nameof(Resources.Analyze), InputGestureText = "Ctrl+R", Order = 100)]
-	internal sealed class AnalyzeCommand : SimpleCommand, IContextMenuEntry
+	[Shared]
+	internal sealed class AnalyzeContextMenuCommand(AnalyzerTreeViewModel analyzerTreeView) : IContextMenuEntry
 	{
 		public bool IsVisible(TextViewContext context)
 		{
@@ -41,70 +44,49 @@ namespace ICSharpCode.ILSpy.Analyzers
 		public bool IsEnabled(TextViewContext context)
 		{
 			if (context.SelectedTreeNodes == null)
-				return context.Reference != null && context.Reference.Reference is IEntity;
-			foreach (IMemberTreeNode node in context.SelectedTreeNodes)
 			{
-				if (!IsValidReference(node.Member))
-					return false;
+				return context.Reference is { Reference: IEntity };
 			}
-
-			return true;
+			return context.SelectedTreeNodes
+				.OfType<IMemberTreeNode>()
+				.All(node => IsValidReference(node.Member));
 		}
 
-		bool IsValidReference(object reference)
+		static bool IsValidReference(object reference)
 		{
-			return reference is IEntity && !(reference is IField f && f.IsConst);
+			return reference is IEntity and not IField { IsConst: true };
 		}
 
 		public void Execute(TextViewContext context)
 		{
-			AnalyzerTreeView analyzerTreeView = MainWindow.Instance.AnalyzerTreeView;
-			if (analyzerTreeView == null)
-			{
-				return;
-			}
 			if (context.SelectedTreeNodes != null)
 			{
-				foreach (IMemberTreeNode node in context.SelectedTreeNodes)
+				foreach (var node in context.SelectedTreeNodes.OfType<IMemberTreeNode>().ToArray())
 				{
 					analyzerTreeView.Analyze(node.Member);
 				}
 			}
-			else if (context.Reference != null && context.Reference.Reference is IEntity entity)
+			else if (context.Reference is { Reference: IEntity entity })
 			{
 				analyzerTreeView.Analyze(entity);
 			}
 		}
+	}
 
+	[Export]
+	[Shared]
+	public sealed class AnalyzeCommand(AssemblyTreeModel assemblyTreeModel, AnalyzerTreeViewModel analyzerTreeViewModel) : SimpleCommand
+	{
 		public override bool CanExecute(object parameter)
 		{
-			AnalyzerTreeView analyzerTreeView = MainWindow.Instance.AnalyzerTreeView;
-			if (analyzerTreeView != null && analyzerTreeView.IsKeyboardFocusWithin)
-			{
-				return analyzerTreeView.SelectedItems.OfType<object>().All(n => n is IMemberTreeNode);
-			}
-			else
-			{
-				return MainWindow.Instance.SelectedNodes.All(n => n is IMemberTreeNode);
-			}
+			return assemblyTreeModel.SelectedNodes.All(n => n is IMemberTreeNode);
 		}
 
 		public override void Execute(object parameter)
 		{
-			AnalyzerTreeView analyzerTreeView = MainWindow.Instance.AnalyzerTreeView;
-			if (analyzerTreeView != null && analyzerTreeView.IsKeyboardFocusWithin)
+			foreach (var node in assemblyTreeModel.SelectedNodes.OfType<IMemberTreeNode>())
 			{
-				foreach (IMemberTreeNode node in MainWindow.Instance.AnalyzerTreeView.SelectedItems.OfType<IMemberTreeNode>().ToArray())
-				{
-					MainWindow.Instance.AnalyzerTreeView.Analyze(node.Member);
-				}
-			}
-			else
-			{
-				foreach (IMemberTreeNode node in MainWindow.Instance.SelectedNodes)
-				{
-					MainWindow.Instance.AnalyzerTreeView.Analyze(node.Member);
-				}
+				analyzerTreeViewModel.Analyze(node.Member);
 			}
 		}
 	}

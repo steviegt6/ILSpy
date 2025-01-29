@@ -16,19 +16,30 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Composition;
 using System.Windows.Input;
 
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpy.Properties;
 
 namespace ICSharpCode.ILSpy
 {
 	[ExportToolbarCommand(ToolTip = nameof(Resources.RefreshCommand_ReloadAssemblies), ToolbarIcon = "Images/Refresh", ToolbarCategory = nameof(Resources.Open), ToolbarOrder = 2)]
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._File), Header = nameof(Resources._Reload), MenuIcon = "Images/Refresh", MenuCategory = nameof(Resources.Open), MenuOrder = 2)]
+	[Shared]
 	sealed class RefreshCommand : CommandWrapper
 	{
-		public RefreshCommand()
+		private readonly AssemblyTreeModel assemblyTreeModel;
+
+		public RefreshCommand(AssemblyTreeModel assemblyTreeModel)
 			: base(NavigationCommands.Refresh)
 		{
+			this.assemblyTreeModel = assemblyTreeModel;
+		}
+
+		protected override void OnExecute(object sender, ExecutedRoutedEventArgs e)
+		{
+			assemblyTreeModel.Refresh();
 		}
 	}
 }

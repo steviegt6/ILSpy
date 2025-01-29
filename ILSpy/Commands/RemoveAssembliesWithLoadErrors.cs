@@ -16,27 +16,30 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Composition;
 using System.Linq;
 
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpy.Properties;
 
 namespace ICSharpCode.ILSpy
 {
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._File), Header = nameof(Resources._RemoveAssembliesWithLoadErrors), MenuCategory = nameof(Resources.Remove), MenuOrder = 2.6)]
-	class RemoveAssembliesWithLoadErrors : SimpleCommand
+	[Shared]
+	class RemoveAssembliesWithLoadErrors(AssemblyTreeModel assemblyTreeModel) : SimpleCommand
 	{
 		public override bool CanExecute(object parameter)
 		{
-			return MainWindow.Instance.CurrentAssemblyList?.GetAssemblies().Any(l => l.HasLoadError) == true;
+			return assemblyTreeModel.AssemblyList.GetAssemblies().Any(l => l.HasLoadError);
 		}
 
 		public override void Execute(object parameter)
 		{
-			foreach (var asm in MainWindow.Instance.CurrentAssemblyList.GetAssemblies())
+			foreach (var assembly in assemblyTreeModel.AssemblyList.GetAssemblies())
 			{
-				if (!asm.HasLoadError)
+				if (!assembly.HasLoadError)
 					continue;
-				var node = MainWindow.Instance.AssemblyListTreeNode.FindAssemblyNode(asm);
+				var node = assemblyTreeModel.FindAssemblyNode(assembly);
 				if (node != null && node.CanDelete())
 					node.Delete();
 			}
@@ -44,16 +47,24 @@ namespace ICSharpCode.ILSpy
 	}
 
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._File), Header = nameof(Resources.ClearAssemblyList), MenuCategory = nameof(Resources.Remove), MenuOrder = 2.6)]
+	[Shared]
 	class ClearAssemblyList : SimpleCommand
 	{
+		private readonly AssemblyTreeModel assemblyTreeModel;
+
+		public ClearAssemblyList(AssemblyTreeModel assemblyTreeModel)
+		{
+			this.assemblyTreeModel = assemblyTreeModel;
+		}
+
 		public override bool CanExecute(object parameter)
 		{
-			return MainWindow.Instance.CurrentAssemblyList?.Count > 0;
+			return assemblyTreeModel.AssemblyList.Count > 0;
 		}
 
 		public override void Execute(object parameter)
 		{
-			MainWindow.Instance.CurrentAssemblyList?.Clear();
+			assemblyTreeModel.AssemblyList.Clear();
 		}
 	}
 }

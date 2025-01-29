@@ -42,7 +42,8 @@ namespace ICSharpCode.ILSpyX.FileLoaders
 			Register(new XamarinCompressedFileLoader());
 			Register(new WebCilFileLoader());
 			Register(new MetadataFileLoader());
-			Register(new BundleFileLoader());
+			Register(new BundleFileLoader()); // bundles are PE files with a special signature, prefer over normal PE files
+			Register(new PEFileLoader()); // prefer PE format over archives, because ZIP has no fixed header
 			Register(new ArchiveFileLoader());
 			Register(new TmodFileLoader());
 		}

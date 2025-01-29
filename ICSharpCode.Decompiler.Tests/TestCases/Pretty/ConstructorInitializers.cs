@@ -60,7 +60,11 @@ namespace ICSharpCode.Decompiler.Tests.TestCases.Pretty
 		public class MethodCallInCtorInit
 		{
 			public MethodCallInCtorInit(ConsoleKey key)
+#if MCS5
+				: this(((int)key/*cast due to .constrained prefix*/).ToString())
+#else
 				: this(((int)key).ToString())
+#endif
 			{
 			}
 
@@ -133,5 +137,15 @@ namespace ICSharpCode.Decompiler.Tests.TestCases.Pretty
 			}
 		}
 #endif
+
+		public class NoRecordButCopyConstructorLike
+		{
+			private NoRecordButCopyConstructorLike parent;
+
+			public NoRecordButCopyConstructorLike(NoRecordButCopyConstructorLike parent)
+			{
+				this.parent = parent;
+			}
+		}
 	}
 }

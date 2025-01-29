@@ -16,15 +16,25 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Composition;
+
 using ICSharpCode.ILSpy.Docking;
 using ICSharpCode.ILSpyX;
 
+using TomsToolbox.Wpf;
+
 namespace ICSharpCode.ILSpy
 {
-	class MainWindowViewModel
+	[Export]
+	[Shared]
+	public class MainWindowViewModel(SettingsService settingsService, LanguageService languageService, DockWorkspace dockWorkspace) : ObservableObject
 	{
-		public DockWorkspace Workspace { get; set; }
-		public SessionSettings SessionSettings { get; set; }
-		public AssemblyListManager AssemblyListManager { get; set; }
+		public DockWorkspace Workspace { get; } = dockWorkspace;
+
+		public SessionSettings SessionSettings => settingsService.SessionSettings;
+
+		public LanguageService LanguageService => languageService;
+
+		public AssemblyListManager AssemblyListManager => settingsService.AssemblyListManager;
 	}
 }

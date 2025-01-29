@@ -191,7 +191,7 @@ namespace ICSharpCode.ILSpyX
 			get { return listName; }
 		}
 
-		internal void Move(LoadedAssembly[] assembliesToMove, int index)
+		public void Move(LoadedAssembly[] assembliesToMove, int index)
 		{
 			VerifyAccess();
 			lock (lockObj)
@@ -235,7 +235,7 @@ namespace ICSharpCode.ILSpyX
 			}
 		}
 
-		internal void RefreshSave()
+		public void RefreshSave()
 		{
 			// Whenever the assembly list is modified, mark it as dirty
 			// and enqueue a task that saves it once the UI has finished modifying the assembly list.
@@ -286,8 +286,9 @@ namespace ICSharpCode.ILSpyX
 		{
 			file = Path.GetFullPath(file);
 			return OpenAssembly(file, () => {
-				var newAsm = new LoadedAssembly(this, file, fileLoaders: manager?.LoaderRegistry, applyWinRTProjections: ApplyWinRTProjections, useDebugSymbols: UseDebugSymbols);
-				newAsm.IsAutoLoaded = isAutoLoaded;
+				var newAsm = new LoadedAssembly(this, file, fileLoaders: manager?.LoaderRegistry, applyWinRTProjections: ApplyWinRTProjections, useDebugSymbols: UseDebugSymbols) {
+					IsAutoLoaded = isAutoLoaded
+				};
 				return newAsm;
 			});
 		}

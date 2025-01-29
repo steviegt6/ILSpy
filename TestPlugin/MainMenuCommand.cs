@@ -1,7 +1,10 @@
 ﻿// Copyright (c) AlphaSierraPapa for the SharpDevelop Team (for details please see \doc\copyright.txt)
 // This code is distributed under MIT X11 license (for details please see \doc\license.txt)
 
+using System.Composition;
+
 using ICSharpCode.ILSpy;
+using ICSharpCode.ILSpy.AssemblyTree;
 
 namespace TestPlugin
 {
@@ -16,11 +19,12 @@ namespace TestPlugin
 	// ToolbarCategory: optional, used for grouping related toolbar items together. A separator is added between different groups.
 	// ToolbarOrder: controls the order in which the items appear (items are sorted by this value)
 	[ExportToolbarCommand(ToolTip = "Clears the current assembly list", ToolbarIcon = "Clear.png", ToolbarCategory = "Open", ToolbarOrder = 1.5)]
-	public class UnloadAllAssembliesCommand : SimpleCommand
+	[Shared]
+	public class UnloadAllAssembliesCommand(AssemblyTreeModel assemblyTreeModel) : SimpleCommand
 	{
 		public override void Execute(object parameter)
 		{
-			foreach (var loadedAssembly in MainWindow.Instance.CurrentAssemblyList.GetAssemblies())
+			foreach (var loadedAssembly in assemblyTreeModel.AssemblyList.GetAssemblies())
 			{
 				loadedAssembly.AssemblyList.Unload(loadedAssembly);
 			}

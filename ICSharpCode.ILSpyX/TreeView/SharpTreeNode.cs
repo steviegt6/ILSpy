@@ -181,8 +181,11 @@ namespace ICSharpCode.ILSpyX.TreeView
 
 		#endregion
 
-		#region OnChildrenChanged
-		internal protected virtual void OnChildrenChanged(NotifyCollectionChangedEventArgs e)
+		#region OnParentChanged / OnChildrenChanged
+		public virtual void OnParentChanged()
+		{ }
+
+		public virtual void OnChildrenChanged(NotifyCollectionChangedEventArgs e)
 		{
 			if (e.OldItems != null)
 			{
@@ -190,6 +193,7 @@ namespace ICSharpCode.ILSpyX.TreeView
 				{
 					Debug.Assert(node.modelParent == this);
 					node.modelParent = null;
+					node.OnParentChanged();
 					Debug.WriteLine("Removing {0} from {1}", node, this);
 					SharpTreeNode removeEnd = node;
 					while (removeEnd.modelChildren != null && removeEnd.modelChildren.Count > 0)
@@ -227,6 +231,7 @@ namespace ICSharpCode.ILSpyX.TreeView
 				{
 					Debug.Assert(node.modelParent == null);
 					node.modelParent = this;
+					node.OnParentChanged();
 					node.UpdateIsVisible(isVisible && isExpanded, false);
 					//Debug.WriteLine("Inserting {0} after {1}", node, insertionPos);
 
@@ -359,7 +364,7 @@ namespace ICSharpCode.ILSpyX.TreeView
 			return TreeTraversal.PreOrder(this.Children.Where(c => c.isVisible), n => n.Children.Where(c => c.isVisible));
 		}
 
-		internal IEnumerable<SharpTreeNode> VisibleDescendantsAndSelf()
+		public IEnumerable<SharpTreeNode> VisibleDescendantsAndSelf()
 		{
 			return TreeTraversal.PreOrder(this, n => n.Children.Where(c => c.isVisible));
 		}
@@ -637,7 +642,7 @@ namespace ICSharpCode.ILSpyX.TreeView
 			return false;
 		}
 
-		internal void InternalDrop(IPlatformDragEventArgs e, int index)
+		public void InternalDrop(IPlatformDragEventArgs e, int index)
 		{
 			if (LazyLoading)
 			{
@@ -658,8 +663,9 @@ namespace ICSharpCode.ILSpyX.TreeView
 
 		public bool IsLast {
 			get {
-				return Parent == null ||
-					Parent.Children[Parent.Children.Count - 1] == this;
+				return Parent == null
+					|| Parent.Children.Count == 0
+					|| Parent.Children[^1] == this;
 			}
 		}
 

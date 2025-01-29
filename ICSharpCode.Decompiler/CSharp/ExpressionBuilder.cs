@@ -541,8 +541,7 @@ namespace ICSharpCode.Decompiler.CSharp
 			rr = AdjustConstantToType(rr, context.TypeHint);
 			return ConvertConstantValue(
 				rr,
-				allowImplicitConversion: true,
-				ShouldDisplayAsHex(inst.Value, rr.Type, inst.Parent)
+				allowImplicitConversion: true
 			).WithILInstruction(inst);
 		}
 
@@ -566,29 +565,17 @@ namespace ICSharpCode.Decompiler.CSharp
 			rr = AdjustConstantToType(rr, context.TypeHint);
 			return ConvertConstantValue(
 				rr,
-				allowImplicitConversion: true,
-				ShouldDisplayAsHex(inst.Value, rr.Type, inst.Parent)
+				allowImplicitConversion: true
 			).WithILInstruction(inst);
 		}
 
-		private bool ShouldDisplayAsHex(long value, IType type, ILInstruction parent)
+		private bool ShouldDisplayAsHex(long value, IType type)
 		{
-			if (parent is Conv conv)
-				parent = conv.Parent;
 			if (value >= 0 && value <= 9)
 				return false;
 			if (value < 0 && type.GetSign() == Sign.Signed)
 				return false;
-			switch (parent)
-			{
-				case BinaryNumericInstruction bni:
-					if (bni.Operator == BinaryNumericOperator.BitAnd
-						|| bni.Operator == BinaryNumericOperator.BitOr
-						|| bni.Operator == BinaryNumericOperator.BitXor)
-						return true;
-					break;
-			}
-			return false;
+			return true;
 		}
 
 		protected internal override TranslatedExpression VisitLdcF4(LdcF4 inst, TranslationContext context)
@@ -639,19 +626,29 @@ namespace ICSharpCode.Decompiler.CSharp
 			Expression expr;
 			IType constantType;
 			object constantValue;
-			if (type.IsReferenceType == true || type.IsKnownType(KnownTypeCode.NullableOfT))
+			if (type.IsReferenceType == true)
 			{
 				expr = new NullReferenceExpression();
 				constantType = SpecialType.NullType;
 				constantValue = null;
+				return expr.WithRR(new ConstantResolveResult(constantType, constantValue));
+			}
+			else if (type.IsKnownType(KnownTypeCode.NullableOfT))
+			{
+				expr = new NullReferenceExpression();
+				constantType = SpecialType.NullType;
+				constantValue = null;
+				var crr = new ConstantResolveResult(constantType, constantValue);
+				return new CastExpression(ConvertType(type), expr.WithRR(crr))
+					.WithRR(new ConversionResolveResult(type, crr, Conversion.NullLiteralConversion));
 			}
 			else
 			{
 				expr = new DefaultValueExpression(ConvertType(type));
 				constantType = type;
 				constantValue = CSharpResolver.GetDefaultValue(type);
+				return expr.WithRR(new ConstantResolveResult(constantType, constantValue));
 			}
-			return expr.WithRR(new ConstantResolveResult(constantType, constantValue));
 		}
 
 		protected internal override TranslatedExpression VisitSizeOf(SizeOf inst, TranslationContext context)
@@ -1525,8 +1522,9 @@ namespace ICSharpCode.Decompiler.CSharp
 		TranslatedExpression HandleBinaryNumeric(BinaryNumericInstruction inst, BinaryOperatorType op, TranslationContext context)
 		{
 			var resolverWithOverflowCheck = resolver.WithCheckForOverflow(inst.CheckForOverflow);
-			var left = Translate(inst.Left, op.IsBitwise() ? context.TypeHint : null);
-			var right = Translate(inst.Right, op.IsBitwise() ? context.TypeHint : null);
+			bool propagateTypeHint = op.IsBitwise() && inst.LeftInputType != inst.RightInputType;
+			var left = Translate(inst.Left, propagateTypeHint ? context.TypeHint : null);
+			var right = Translate(inst.Right, propagateTypeHint ? context.TypeHint : null);
 
 			if (inst.UnderlyingResultType == StackType.Ref)
 			{
@@ -1613,7 +1611,7 @@ namespace ICSharpCode.Decompiler.CSharp
 					left = ConvertConstantValue(
 						left.ResolveResult,
 						allowImplicitConversion: false,
-						ShouldDisplayAsHex(value, left.Type, inst)
+						ShouldDisplayAsHex(value, left.Type)
 					).WithILInstruction(left.ILInstructions);
 				}
 				if (right.ResolveResult.ConstantValue != null)
@@ -1623,7 +1621,7 @@ namespace ICSharpCode.Decompiler.CSharp
 					right = ConvertConstantValue(
 						right.ResolveResult,
 						allowImplicitConversion: false,
-						ShouldDisplayAsHex(value, right.Type, inst)
+						ShouldDisplayAsHex(value, right.Type)
 					).WithILInstruction(right.ILInstructions);
 				}
 			}
@@ -3912,30 +3910,93 @@ namespace ICSharpCode.Decompiler.CSharp
 			}
 		}
 
-		protected internal override TranslatedExpression VisitSwitchInstruction(SwitchInstruction inst, TranslationContext context)
+		internal (TranslatedExpression, IType, StringToInt) TranslateSwitchValue(SwitchInstruction inst, bool isExpressionContext)
 		{
 			TranslatedExpression value;
 			IType type;
+			// prepare expression and expected type
 			if (inst.Value is StringToInt strToInt)
 			{
-				value = Translate(strToInt.Argument)
-					.ConvertTo(
-						strToInt.ExpectedType,
-						this,
-						allowImplicitConversion: false // switch-expression does not support implicit conversions
-					);
-				type = compilation.FindType(KnownTypeCode.String);
+				value = Translate(strToInt.Argument);
+				type = strToInt.ExpectedType ?? compilation.FindType(KnownTypeCode.String);
 			}
 			else
 			{
 				strToInt = null;
 				value = Translate(inst.Value);
-				if (inst.Type != null)
-				{
-					value = value.ConvertTo(inst.Type, this, allowImplicitConversion: true);
-				}
-				type = value.Type;
+				type = inst.Type ?? value.Type;
 			}
+
+			// find and unwrap the input type
+			IType inputType = value.Type;
+			if (value.Expression is CastExpression && value.ResolveResult is ConversionResolveResult crr)
+			{
+				inputType = crr.Input.Type;
+			}
+			inputType = NullableType.GetUnderlyingType(inputType).GetEnumUnderlyingType();
+
+			// check input/underlying type for compatibility
+			bool allowImplicitConversion;
+			if (IsCompatibleWithSwitch(inputType) || (strToInt != null && inputType.Equals(type)))
+			{
+				allowImplicitConversion = !isExpressionContext;
+			}
+			else
+			{
+				var applicableImplicitConversionOperators = inputType.GetMethods(IsCompatibleImplicitConversionOperator).ToArray();
+				switch (applicableImplicitConversionOperators.Length)
+				{
+					case 0:
+						allowImplicitConversion = !isExpressionContext;
+						break;
+					case 1:
+						allowImplicitConversion = !isExpressionContext;
+						// TODO validate
+						break;
+					default:
+						allowImplicitConversion = false;
+						break;
+				}
+			}
+
+			value = value.ConvertTo(type, this, allowImplicitConversion: allowImplicitConversion);
+
+			var caseType = strToInt != null
+				? compilation.FindType(KnownTypeCode.String)
+				: type;
+
+			return (value, caseType, strToInt);
+
+			static bool IsCompatibleWithSwitch(IType type)
+			{
+				return type.IsKnownType(KnownTypeCode.SByte)
+					|| type.IsKnownType(KnownTypeCode.Byte)
+					|| type.IsKnownType(KnownTypeCode.Int16)
+					|| type.IsKnownType(KnownTypeCode.UInt16)
+					|| type.IsKnownType(KnownTypeCode.Int32)
+					|| type.IsKnownType(KnownTypeCode.UInt32)
+					|| type.IsKnownType(KnownTypeCode.Int64)
+					|| type.IsKnownType(KnownTypeCode.UInt64)
+					|| type.IsKnownType(KnownTypeCode.Char)
+					|| type.IsKnownType(KnownTypeCode.String);
+			}
+
+			bool IsCompatibleImplicitConversionOperator(IMethod operatorMethod)
+			{
+				if (!operatorMethod.IsOperator)
+					return false;
+				if (operatorMethod.Name != "op_Implicit")
+					return false;
+				if (operatorMethod.Parameters.Count != 1)
+					return false;
+				return IsCompatibleWithSwitch(operatorMethod.ReturnType);
+			}
+		}
+
+		protected internal override TranslatedExpression VisitSwitchInstruction(SwitchInstruction inst, TranslationContext context)
+		{
+			// switch-expression does not support implicit conversions
+			var (value, type, strToInt) = TranslateSwitchValue(inst, true);
 
 			IL.SwitchSection defaultSection = inst.GetDefaultSection();
 			SwitchExpression switchExpr = new SwitchExpression();

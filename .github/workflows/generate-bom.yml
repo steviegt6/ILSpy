@@ -3,6 +3,9 @@ name: Generate BOM
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
@@ -14,6 +17,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: true
+        persist-credentials: false
 
     - name: Install CycloneDX
       run: dotnet tool install --global CycloneDX

@@ -18,27 +18,29 @@
 
 using System;
 using System.Collections.Generic;
+using System.Composition;
 using System.IO;
 using System.Linq;
 using System.Windows;
 
-using ICSharpCode.Decompiler.IL;
-using ICSharpCode.ILSpy.Options;
+using ICSharpCode.ILSpy.Docking;
 using ICSharpCode.ILSpy.Properties;
 using ICSharpCode.ILSpy.TreeNodes;
 using ICSharpCode.ILSpy.ViewModels;
+using ICSharpCode.ILSpyX.TreeView;
 
 using Microsoft.Win32;
-using ICSharpCode.ILSpyX.TreeView;
+
 
 namespace ICSharpCode.ILSpy.TextView
 {
 	[ExportContextMenuEntry(Header = nameof(Resources._SaveCode), Category = nameof(Resources.Save), Icon = "Images/Save")]
-	sealed class SaveCodeContextMenuEntry : IContextMenuEntry
+	[Shared]
+	sealed class SaveCodeContextMenuEntry(LanguageService languageService, DockWorkspace dockWorkspace) : IContextMenuEntry
 	{
 		public void Execute(TextViewContext context)
 		{
-			Execute(context.SelectedTreeNodes);
+			Execute(context.SelectedTreeNodes, languageService, dockWorkspace);
 		}
 
 		public bool IsEnabled(TextViewContext context) => true;
@@ -56,10 +58,10 @@ namespace ICSharpCode.ILSpy.TextView
 				|| (selectedNodes.Count > 1 && (selectedNodes.All(n => n is AssemblyTreeNode) || selectedNodes.All(n => n is IMemberTreeNode)));
 		}
 
-		public static void Execute(IReadOnlyList<SharpTreeNode> selectedNodes)
+		public static void Execute(IReadOnlyList<SharpTreeNode> selectedNodes, LanguageService languageService, DockWorkspace dockWorkspace)
 		{
-			var currentLanguage = MainWindow.Instance.CurrentLanguage;
-			var tabPage = Docking.DockWorkspace.Instance.ActiveTabPage;
+			var currentLanguage = languageService.Language;
+			var tabPage = dockWorkspace.ActiveTabPage;
 			tabPage.ShowTextView(textView => {
 				if (selectedNodes.Count == 1 && selectedNodes[0] is ILSpyTreeNode singleSelection)
 				{
@@ -68,7 +70,7 @@ namespace ICSharpCode.ILSpy.TextView
 					if (singleSelection.Save(tabPage))
 						return;
 				}
-				else if (selectedNodes.Count > 1 && selectedNodes.All(n => n is AssemblyTreeNode))
+				else if (selectedNodes.Count > 1 && selectedNodes.All(n => n is AssemblyTreeNode { LoadedAssembly.IsLoadedAsValidAssembly: true }))
 				{
 					var selectedPath = SelectSolutionFile();
 
@@ -77,14 +79,14 @@ namespace ICSharpCode.ILSpy.TextView
 						var assemblies = selectedNodes.OfType<AssemblyTreeNode>()
 							.Select(n => n.LoadedAssembly)
 							.Where(a => a.IsLoadedAsValidAssembly).ToArray();
-						SolutionWriter.CreateSolution(textView, selectedPath, currentLanguage, assemblies);
+						SolutionWriter.CreateSolution(tabPage, textView, selectedPath, currentLanguage, assemblies);
 					}
 					return;
 				}
 
 				// Fallback: if nobody was able to handle the request, use default behavior.
 				// try to save all nodes to disk.
-				var options = MainWindow.Instance.CreateDecompilationOptions();
+				var options = dockWorkspace.ActiveTabPage.CreateDecompilationOptions();
 				options.FullDecompilation = true;
 				textView.SaveToDisk(currentLanguage, selectedNodes.OfType<ILSpyTreeNode>(), options);
 			});

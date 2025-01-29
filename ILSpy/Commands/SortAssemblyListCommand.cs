@@ -18,7 +18,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Composition;
 
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpy.Properties;
 using ICSharpCode.ILSpyX;
 using ICSharpCode.ILSpyX.TreeView;
@@ -27,39 +29,24 @@ namespace ICSharpCode.ILSpy
 {
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._View), Header = nameof(Resources.SortAssembly_listName), MenuIcon = "Images/Sort", MenuCategory = nameof(Resources.View))]
 	[ExportToolbarCommand(ToolTip = nameof(Resources.SortAssemblyListName), ToolbarIcon = "Images/Sort", ToolbarCategory = nameof(Resources.View))]
-	sealed class SortAssemblyListCommand : SimpleCommand, IComparer<LoadedAssembly>
+	[Shared]
+	sealed class SortAssemblyListCommand(AssemblyTreeModel assemblyTreeModel) : SimpleCommand
 	{
 		public override void Execute(object parameter)
 		{
-			using (MainWindow.Instance.AssemblyTreeView.LockUpdates())
-				MainWindow.Instance.CurrentAssemblyList.Sort(this);
-		}
-
-		int IComparer<LoadedAssembly>.Compare(LoadedAssembly x, LoadedAssembly y)
-		{
-			return string.Compare(x.ShortName, y.ShortName, StringComparison.CurrentCulture);
+			assemblyTreeModel.SortAssemblyList();
 		}
 	}
 
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._View), Header = nameof(Resources._CollapseTreeNodes), MenuIcon = "Images/CollapseAll", MenuCategory = nameof(Resources.View))]
 	[ExportToolbarCommand(ToolTip = nameof(Resources.CollapseTreeNodes), ToolbarIcon = "Images/CollapseAll", ToolbarCategory = nameof(Resources.View))]
-	sealed class CollapseAllCommand : SimpleCommand
+	[Shared]
+	sealed class CollapseAllCommand(AssemblyTreeModel assemblyTreeModel) : SimpleCommand
 	{
 		public override void Execute(object parameter)
 		{
-			using (MainWindow.Instance.AssemblyTreeView.LockUpdates())
-				CollapseChildren(MainWindow.Instance.AssemblyTreeView.Root);
+			assemblyTreeModel.CollapseAll();
 
-			void CollapseChildren(SharpTreeNode node)
-			{
-				foreach (var child in node.Children)
-				{
-					if (!child.IsExpanded)
-						continue;
-					CollapseChildren(child);
-					child.IsExpanded = false;
-				}
-			}
 		}
 	}
 }

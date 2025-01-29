@@ -43,8 +43,8 @@ namespace ICSharpCode.ILSpy.TreeNodes
 
 		private IField GetFieldDefinition()
 		{
-			return ((MetadataModule)FieldDefinition.ParentModule.MetadataFile
-				?.GetTypeSystemWithCurrentOptionsOrNull()
+			return ((MetadataModule)FieldDefinition.ParentModule?.MetadataFile
+				?.GetTypeSystemWithCurrentOptionsOrNull(SettingsService)
 				?.MainModule)?.GetDefinition((FieldDefinitionHandle)FieldDefinition.MetadataToken) ?? FieldDefinition;
 		}
 
@@ -69,11 +69,11 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			return Images.GetIcon(MemberIcon.Field, MethodTreeNode.GetOverlayIcon(field.Accessibility), field.IsStatic);
 		}
 
-		public override FilterResult Filter(FilterSettings settings)
+		public override FilterResult Filter(LanguageSettings settings)
 		{
 			if (settings.ShowApiLevel == ApiVisibility.PublicOnly && !IsPublicAPI)
 				return FilterResult.Hidden;
-			if (settings.SearchTermMatches(FieldDefinition.Name) && (settings.ShowApiLevel == ApiVisibility.All || settings.Language.ShowMember(FieldDefinition)))
+			if (settings.SearchTermMatches(FieldDefinition.Name) && (settings.ShowApiLevel == ApiVisibility.All || LanguageService.Language.ShowMember(FieldDefinition)))
 				return FilterResult.Match;
 			else
 				return FilterResult.Hidden;

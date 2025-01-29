@@ -1,0 +1,48 @@
+name: Scorecard supply-chain security
+
+on:
+  # For Branch-Protection check. Only the default branch is supported. See
+  # https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection (disabled)
+  # branch_protection_rule:
+  workflow_dispatch:
+
+  # schedule ("Maintained") and push are disabled atm
+  # schedule:
+    # - cron: '25 1 * * 2'
+  # push:
+    # branches: [ "master" ]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # Needed to upload the results to code-scanning dashboard.
+      id-token: write # Needed to publish results and get a badge (see publish_results below).
+
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Run analysis"
+        uses: ossf/scorecard-action@v2.4.0 # https://github.com/marketplace/actions/ossf-scorecard-action
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: "Upload to code-scanning"
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

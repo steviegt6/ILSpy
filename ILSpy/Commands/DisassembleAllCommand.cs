@@ -20,17 +20,21 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Composition;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
+using ICSharpCode.ILSpy.AssemblyTree;
+using ICSharpCode.ILSpy.Docking;
 using ICSharpCode.ILSpy.Properties;
 using ICSharpCode.ILSpy.TextView;
-using ICSharpCode.ILSpyX;
+using ICSharpCode.ILSpy.ViewModels;
 
 namespace ICSharpCode.ILSpy
 {
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._File), Header = nameof(Resources.DEBUGDisassemble), MenuCategory = nameof(Resources.Open), MenuOrder = 2.5)]
-	sealed class DisassembleAllCommand : SimpleCommand
+	[Shared]
+	sealed class DisassembleAllCommand(AssemblyTreeModel assemblyTreeModel, DockWorkspace dockWorkspace) : SimpleCommand
 	{
 		public override bool CanExecute(object parameter)
 		{
@@ -39,12 +43,12 @@ namespace ICSharpCode.ILSpy
 
 		public override void Execute(object parameter)
 		{
-			Docking.DockWorkspace.Instance.RunWithCancellation(ct => Task<AvalonEditTextOutput>.Factory.StartNew(() => {
-				AvalonEditTextOutput output = new AvalonEditTextOutput();
+			dockWorkspace.RunWithCancellation(ct => Task<AvalonEditTextOutput>.Factory.StartNew(() => {
+				AvalonEditTextOutput output = new();
 				Parallel.ForEach(
-					Partitioner.Create(MainWindow.Instance.CurrentAssemblyList.GetAssemblies(), loadBalance: true),
-					new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = ct },
-					delegate (LoadedAssembly asm) {
+					Partitioner.Create(assemblyTreeModel.AssemblyList.GetAssemblies(), loadBalance: true),
+					new() { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = ct },
+					asm => {
 						if (!asm.HasLoadError)
 						{
 							Stopwatch w = Stopwatch.StartNew();
@@ -53,10 +57,10 @@ namespace ICSharpCode.ILSpy
 							{
 								try
 								{
-									var options = MainWindow.Instance.CreateDecompilationOptions();
+									var options = dockWorkspace.ActiveTabPage.CreateDecompilationOptions();
 									options.FullDecompilation = true;
 									options.CancellationToken = ct;
-									new ILLanguage().DecompileAssembly(asm, new Decompiler.PlainTextOutput(writer), options);
+									new ILLanguage(dockWorkspace).DecompileAssembly(asm, new Decompiler.PlainTextOutput(writer), options);
 								}
 								catch (Exception ex)
 								{
@@ -77,7 +81,7 @@ namespace ICSharpCode.ILSpy
 						}
 					});
 				return output;
-			}, ct)).Then(output => Docking.DockWorkspace.Instance.ShowText(output)).HandleExceptions();
+			}, ct)).Then(dockWorkspace.ShowText).HandleExceptions();
 		}
 	}
 }

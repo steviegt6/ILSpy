@@ -18,7 +18,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -38,7 +38,7 @@ using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.Output;
 using ICSharpCode.Decompiler.Solution;
 using ICSharpCode.Decompiler.TypeSystem;
-using ICSharpCode.Decompiler.Util;
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpy.TextView;
 using ICSharpCode.ILSpy.TreeNodes;
 using ICSharpCode.ILSpyX;
@@ -53,6 +53,7 @@ namespace ICSharpCode.ILSpy
 	/// please directly use the CSharpDecompiler class.
 	/// </summary>
 	[Export(typeof(Language))]
+	[Shared]
 	public class CSharpLanguage : Language
 	{
 		string name = "C#";
@@ -66,7 +67,7 @@ namespace ICSharpCode.ILSpy
 			int transformCount = 0;
 			foreach (var transform in CSharpDecompiler.GetAstTransforms())
 			{
-				yield return new CSharpLanguage {
+				yield return new() {
 					transformCount = transformCount,
 					name = "C# - " + lastTransformName,
 					showAllMembers = true
@@ -74,7 +75,7 @@ namespace ICSharpCode.ILSpy
 				lastTransformName = "after " + transform.GetType().Name;
 				transformCount++;
 			}
-			yield return new CSharpLanguage {
+			yield return new() {
 				name = "C# - " + lastTransformName,
 				showAllMembers = true
 			};
@@ -221,6 +222,11 @@ namespace ICSharpCode.ILSpy
 								removedSymbols.Add(pd.GetSymbol());
 							}
 							break;
+						case CustomEventDeclaration ced:
+						case IndexerDeclaration id:
+							node.Remove();
+							removedSymbols.Add(node.GetSymbol());
+							break;
 					}
 				}
 				if (ctorDecl?.Initializer.ConstructorInitializerType == ConstructorInitializerType.This)
@@ -290,7 +296,7 @@ namespace ICSharpCode.ILSpy
 			}
 			foreach (var p in type.Properties)
 			{
-				if (!p.MetadataToken.IsNil && p.IsStatic == isStatic)
+				if (!p.MetadataToken.IsNil && p.IsStatic == isStatic && !p.IsIndexer)
 					members.Add(p.MetadataToken);
 			}
 			foreach (var ctor in type.Methods)
@@ -357,15 +363,15 @@ namespace ICSharpCode.ILSpy
 
 		void AddReferenceWarningMessage(MetadataFile module, ITextOutput output)
 		{
-			var loadedAssembly = MainWindow.Instance.CurrentAssemblyList.GetAllLoadedAssembles().FirstOrDefault(la => la.GetMetadataFileOrNull() == module);
+			var loadedAssembly = AssemblyTreeModel.AssemblyList.GetAllLoadedAssembles().FirstOrDefault(la => la.GetMetadataFileOrNull() == module);
 			if (loadedAssembly == null || !loadedAssembly.LoadedAssemblyReferencesInfo.HasErrors)
 				return;
 			string line1 = Properties.Resources.WarningSomeAssemblyReference;
 			string line2 = Properties.Resources.PropertyManuallyMissingReferencesListLoadedAssemblies;
 			AddWarningMessage(module, output, line1, line2, Properties.Resources.ShowAssemblyLoad, Images.ViewCode, delegate {
-				ILSpyTreeNode assemblyNode = MainWindow.Instance.FindTreeNode(module);
+				ILSpyTreeNode assemblyNode = AssemblyTreeModel.FindTreeNode(module);
 				assemblyNode.EnsureLazyChildren();
-				MainWindow.Instance.SelectNode(assemblyNode.Children.OfType<ReferenceFolderTreeNode>().Single());
+				AssemblyTreeModel.SelectNode(assemblyNode.Children.OfType<ReferenceFolderTreeNode>().Single());
 			});
 		}
 
@@ -429,8 +435,9 @@ namespace ICSharpCode.ILSpy
 				{
 					options.DecompilerSettings.UseSdkStyleProjectFormat = false;
 				}
-				var decompiler = new ILSpyWholeProjectDecompiler(assembly, options);
-				decompiler.ProgressIndicator = options.Progress;
+				var decompiler = new ILSpyWholeProjectDecompiler(assembly, options) {
+					ProgressIndicator = options.Progress
+				};
 				return decompiler.DecompileProject(module, options.SaveAsProjectDirectory, new TextOutputWriter(output), options.CancellationToken);
 			}
 			else
@@ -552,7 +559,7 @@ namespace ICSharpCode.ILSpy
 			protected override IEnumerable<ProjectItemInfo> WriteResourceToFile(string fileName, string resourceName, Stream entryStream)
 			{
 				var context = new ResourceFileHandlerContext(options);
-				foreach (var handler in App.ExportProvider.GetExportedValues<IResourceFileHandler>())
+				foreach (var handler in ResourceFileHandlers)
 				{
 					if (handler.CanHandle(fileName, context))
 					{
@@ -566,19 +573,19 @@ namespace ICSharpCode.ILSpy
 			}
 		}
 
-		static CSharpAmbience CreateAmbience()
+		CSharpAmbience CreateAmbience()
 		{
 			CSharpAmbience ambience = new CSharpAmbience();
 			// Do not forget to update CSharpAmbienceTests.ILSpyMainTreeViewTypeFlags, if this ever changes.
 			ambience.ConversionFlags = ConversionFlags.ShowTypeParameterList | ConversionFlags.PlaceReturnTypeAfterParameterList;
-			if (MainWindow.Instance.CurrentDecompilerSettings.LiftNullables)
+			if (SettingsService.DecompilerSettings.LiftNullables)
 			{
 				ambience.ConversionFlags |= ConversionFlags.UseNullableSpecifierForValueTypes;
 			}
 			return ambience;
 		}
 
-		static string EntityToString(IEntity entity, bool includeDeclaringTypeName, bool includeNamespace, bool includeNamespaceOfDeclaringTypeName)
+		string EntityToString(IEntity entity, bool includeDeclaringTypeName, bool includeNamespace, bool includeNamespaceOfDeclaringTypeName)
 		{
 			// Do not forget to update CSharpAmbienceTests, if this ever changes.
 			var ambience = CreateAmbience();
@@ -774,7 +781,7 @@ namespace ICSharpCode.ILSpy
 		public override bool ShowMember(IEntity member)
 		{
 			MetadataFile assembly = member.ParentModule.MetadataFile;
-			return showAllMembers || !CSharpDecompiler.MemberIsHidden(assembly, member.MetadataToken, MainWindow.Instance.CurrentDecompilerSettings);
+			return showAllMembers || !CSharpDecompiler.MemberIsHidden(assembly, member.MetadataToken, SettingsService.DecompilerSettings);
 		}
 
 		public override RichText GetRichTextTooltip(IEntity entity)
@@ -783,7 +790,7 @@ namespace ICSharpCode.ILSpy
 			var output = new StringWriter();
 			var decoratedWriter = new TextWriterTokenWriter(output);
 			var writer = new CSharpHighlightingTokenWriter(TokenWriter.InsertRequiredSpaces(decoratedWriter), locatable: decoratedWriter);
-			var settings = MainWindow.Instance.CurrentDecompilerSettings;
+			var settings = SettingsService.DecompilerSettings;
 			if (!settings.LiftNullables)
 			{
 				flags &= ~ConversionFlags.UseNullableSpecifierForValueTypes;

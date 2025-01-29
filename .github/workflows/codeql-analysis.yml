@@ -6,8 +6,15 @@ on:
   pull_request:
     branches: [ master, release/** ]
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
+    permissions:
+      actions: read  # for github/codeql-action/init to get workflow details
+      security-events: write  # for github/codeql-action/analyze to upload SARIF results
+      
     name: Analyze
     runs-on: ubuntu-latest
 
@@ -21,6 +28,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        persist-credentials: false
     
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3

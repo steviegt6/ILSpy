@@ -23,9 +23,12 @@ using ICSharpCode.ILSpy.Properties;
 using ICSharpCode.ILSpy.TreeNodes;
 namespace ICSharpCode.ILSpy
 {
+	using System.Composition;
+
 	using ICSharpCode.Decompiler.TypeSystem;
 
 	[ExportContextMenuEntry(Header = nameof(Resources.SearchMSDN), Icon = "images/SearchMsdn", Order = 9999)]
+	[Shared]
 	internal sealed class SearchMsdnContextMenuEntry : IContextMenuEntry
 	{
 		private static string msdnAddress = "https://docs.microsoft.com/dotnet/api/{0}";
@@ -133,7 +136,7 @@ namespace ICSharpCode.ILSpy
 
 			address = address.ToLower();
 			if (!string.IsNullOrEmpty(address))
-				MainWindow.OpenLink(address);
+				GlobalUtils.OpenLink(address);
 		}
 	}
 }

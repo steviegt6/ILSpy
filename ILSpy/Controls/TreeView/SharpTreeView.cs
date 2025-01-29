@@ -30,6 +30,8 @@ using System.Windows.Threading;
 
 using ICSharpCode.ILSpyX.TreeView;
 
+using TomsToolbox.Wpf;
+
 namespace ICSharpCode.ILSpy.Controls.TreeView
 {
 	public class SharpTreeView : ListView
@@ -54,7 +56,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 			RegisterCommands();
 		}
 
-		public static ResourceKey DefaultItemContainerStyleKey { get; private set; }
+		public static ResourceKey DefaultItemContainerStyleKey { get; }
 
 		public SharpTreeView()
 		{
@@ -62,7 +64,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 		}
 
 		public static readonly DependencyProperty RootProperty =
-			DependencyProperty.Register("Root", typeof(SharpTreeNode), typeof(SharpTreeView));
+			DependencyProperty.Register(nameof(Root), typeof(SharpTreeNode), typeof(SharpTreeView));
 
 		public SharpTreeNode Root {
 			get { return (SharpTreeNode)GetValue(RootProperty); }
@@ -70,7 +72,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 		}
 
 		public static readonly DependencyProperty ShowRootProperty =
-			DependencyProperty.Register("ShowRoot", typeof(bool), typeof(SharpTreeView),
+			DependencyProperty.Register(nameof(ShowRoot), typeof(bool), typeof(SharpTreeView),
 										new FrameworkPropertyMetadata(true));
 
 		public bool ShowRoot {
@@ -79,7 +81,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 		}
 
 		public static readonly DependencyProperty ShowRootExpanderProperty =
-			DependencyProperty.Register("ShowRootExpander", typeof(bool), typeof(SharpTreeView),
+			DependencyProperty.Register(nameof(ShowRootExpander), typeof(bool), typeof(SharpTreeView),
 										new FrameworkPropertyMetadata(false));
 
 		public bool ShowRootExpander {
@@ -88,7 +90,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 		}
 
 		public static readonly DependencyProperty AllowDropOrderProperty =
-			DependencyProperty.Register("AllowDropOrder", typeof(bool), typeof(SharpTreeView));
+			DependencyProperty.Register(nameof(AllowDropOrder), typeof(bool), typeof(SharpTreeView));
 
 		public bool AllowDropOrder {
 			get { return (bool)GetValue(AllowDropOrderProperty); }
@@ -96,7 +98,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 		}
 
 		public static readonly DependencyProperty ShowLinesProperty =
-			DependencyProperty.Register("ShowLines", typeof(bool), typeof(SharpTreeView),
+			DependencyProperty.Register(nameof(ShowLines), typeof(bool), typeof(SharpTreeView),
 										new FrameworkPropertyMetadata(true));
 
 		public bool ShowLines {
@@ -158,6 +160,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 			if (flattener != null)
 			{
 				flattener.Stop();
+				flattener.CollectionChanged -= flattener_CollectionChanged;
 			}
 			if (Root != null)
 			{
@@ -358,6 +361,17 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 						}
 					}
 					break;
+				case Key.System:
+					// https://github.com/icsharpcode/ILSpy/issues/3378:
+					// Behavior got broken when upgrading to .NET 8.0 for unknown reasons and without
+					// any more specific known cause. We fix it by not handling Alt+Left or Right
+					// in SharpTreeView so it is handled by the window.
+					if (e.SystemKey is Key.Left or Key.Right)
+					{
+						// yes, we do NOT call base.OnKeyDown(e); in this case.
+						return;
+					}
+					break;
 			}
 			if (!e.Handled)
 				base.OnKeyDown(e);
@@ -395,9 +409,10 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 		/// </summary>
 		public void FocusNode(SharpTreeNode node)
 		{
-			if (node == null)
-				throw new ArgumentNullException("node");
+			ArgumentNullException.ThrowIfNull(node);
+
 			ScrollIntoView(node);
+
 			// WPF's ScrollIntoView() uses the same if/dispatcher construct, so we call OnFocusItem() after the item was brought into view.
 			if (this.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
 			{
@@ -405,7 +420,7 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 			}
 			else
 			{
-				this.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new DispatcherOperationCallback(this.OnFocusItem), node);
+				this.BeginInvoke(DispatcherPriority.Loaded, () => OnFocusItem(node));
 			}
 		}
 
@@ -415,7 +430,9 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 				throw new ArgumentNullException("node");
 			doNotScrollOnExpanding = true;
 			foreach (SharpTreeNode ancestor in node.Ancestors())
+			{
 				ancestor.IsExpanded = true;
+			}
 			doNotScrollOnExpanding = false;
 			base.ScrollIntoView(node);
 		}
@@ -818,9 +835,9 @@ namespace ICSharpCode.ILSpy.Controls.TreeView
 		/// </summary>
 		public IEnumerable<SharpTreeNode> GetTopLevelSelection()
 		{
-			var selection = this.SelectedItems.OfType<SharpTreeNode>();
-			var selectionHash = new HashSet<SharpTreeNode>(selection);
-			return selection.Where(item => item.Ancestors().All(a => !selectionHash.Contains(a)));
+			var selection = this.SelectedItems.OfType<SharpTreeNode>().ToHashSet();
+
+			return selection.Where(item => item.Ancestors().All(a => !selection.Contains(a)));
 		}
 
 		#endregion

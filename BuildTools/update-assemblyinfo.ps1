@@ -52,8 +52,9 @@ function gitVersion() {
         return 0;
     }
     try {
-        return [Int32]::Parse((git rev-list --count "$baseCommit..HEAD")) + $baseCommitRev;
+        return [Int32]::Parse((git rev-list --count "$baseCommit..HEAD" 2>&1 | Tee-Object -Variable cmdOutput)) + $baseCommitRev;
     } catch {
+        Write-Host $cmdOutput
         return 0;
     }
 }
@@ -63,10 +64,23 @@ function gitCommitHash() {
         return "0000000000000000000000000000000000000000";
     }
     try {
-        return (git rev-list --max-count 1 HEAD);
+        return (git rev-list --max-count 1 HEAD 2>&1 | Tee-Object -Variable cmdOutput);
     } catch {
+        Write-Host $cmdOutput
         return "0000000000000000000000000000000000000000";
     }
+}
+
+function gitShortCommitHash() {
+    if (No-Git) {
+        return "00000000";
+    }
+    try {
+        return (git rev-parse --short=8 (git rev-list --max-count 1 HEAD 2>&1 | Tee-Object -Variable cmdOutput) 2>&1 | Tee-Object -Variable cmdOutput);
+    } catch {
+        Write-Host $cmdOutput
+        return "00000000";
+    }	
 }
 
 function gitBranch() {
@@ -117,6 +131,7 @@ try {
     $revision = gitVersion;
     $branchName = gitBranch;
     $gitCommitHash = gitCommitHash;
+	$gitShortCommitHash = gitShortCommitHash;
 
     if ($branchName -match $masterBranches) {
         $postfixBranchName = "";
@@ -150,7 +165,7 @@ try {
 		$out = $out.Replace('$INSERTMAJORVERSION$', $major);
 		$out = $out.Replace('$INSERTREVISION$', $revision);
 		$out = $out.Replace('$INSERTCOMMITHASH$', $gitCommitHash);
-		$out = $out.Replace('$INSERTSHORTCOMMITHASH$', $gitCommitHash.Substring(0, 8));
+		$out = $out.Replace('$INSERTSHORTCOMMITHASH$', $gitShortCommitHash);
 		$out = $out.Replace('$INSERTDATE$', [System.DateTime]::Now.ToString("MM/dd/yyyy"));
 		$out = $out.Replace('$INSERTYEAR$', [System.DateTime]::Now.Year.ToString());
 		$out = $out.Replace('$INSERTBRANCHNAME$', $branchName);

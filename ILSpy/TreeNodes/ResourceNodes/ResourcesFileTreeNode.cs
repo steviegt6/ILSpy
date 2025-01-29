@@ -19,7 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.IO;
 using System.Linq;
 
@@ -38,6 +38,7 @@ using Microsoft.Win32;
 namespace ICSharpCode.ILSpy.TreeNodes
 {
 	[Export(typeof(IResourceNodeFactory))]
+	[Shared]
 	sealed class ResourcesFileTreeNodeFactory : IResourceNodeFactory
 	{
 		public ITreeNode CreateNode(Resource resource)
@@ -175,7 +176,7 @@ namespace ICSharpCode.ILSpy.TreeNodes
 		{
 			EnsureLazyChildren();
 			base.Decompile(language, output, options);
-			var textView = (DecompilerTextView)Docking.DockWorkspace.Instance.ActiveTabPage.Content;
+			var textView = (DecompilerTextView)DockWorkspace.ActiveTabPage.Content;
 			if (stringTableEntries.Count != 0)
 			{
 				ISmartTextOutput smartOutput = output as ISmartTextOutput;

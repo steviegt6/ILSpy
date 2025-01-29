@@ -209,14 +209,19 @@ namespace ICSharpCode.ILSpyX
 		/// </remarks>
 		public ICompilation? GetTypeSystemOrNull()
 		{
-			return LazyInitializer.EnsureInitialized(ref this.typeSystem, () => {
+			var value = Volatile.Read(ref this.typeSystem);
+			if (value == null)
+			{
 				var module = GetMetadataFileOrNull();
 				if (module == null || module.IsMetadataOnly)
-					return null!;
-				return new SimpleCompilation(
+					return null;
+				value = new SimpleCompilation(
 					module.WithOptions(TypeSystemOptions.Default | TypeSystemOptions.Uncached | TypeSystemOptions.KeepModifiers),
 					MinimalCorlib.Instance);
-			});
+				value = LazyInit.GetOrSet(ref this.typeSystem, value);
+			}
+
+			return value;
 		}
 
 		readonly object typeSystemWithOptionsLockObj = new object();
@@ -294,7 +299,7 @@ namespace ICSharpCode.ILSpyX
 		/// </summary>
 		public bool IsLoadedAsValidAssembly {
 			get {
-				return loadingTask.Status == TaskStatus.RanToCompletion && loadingTask.Result.MetadataFile != null;
+				return loadingTask.Status == TaskStatus.RanToCompletion && loadingTask.Result.MetadataFile is { IsMetadataOnly: false };
 			}
 		}
 
@@ -353,12 +358,7 @@ namespace ICSharpCode.ILSpyX
 				stream.Position = 0;
 				try
 				{
-					MetadataReaderOptions options = applyWinRTProjections
-						? MetadataReaderOptions.ApplyWindowsRuntimeProjections
-						: MetadataReaderOptions.None;
-
-					PEFile module = new PEFile(fileName, stream, PEStreamOptions.PrefetchEntireImage, metadataOptions: options);
-					result = new LoadResult { MetadataFile = module };
+					result = await PEFileLoader.LoadPEFile(fileName, stream, settings).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{

@@ -20,14 +20,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Navigation;
+using System.Windows.Data;
 using System.Windows.Threading;
 
 using AvalonDock;
@@ -35,69 +33,103 @@ using AvalonDock.Layout;
 using AvalonDock.Layout.Serialization;
 
 using ICSharpCode.AvalonEdit.Highlighting;
+using ICSharpCode.ILSpy.Analyzers;
+using ICSharpCode.ILSpy.Search;
 using ICSharpCode.ILSpy.TextView;
 using ICSharpCode.ILSpy.ViewModels;
 
+using TomsToolbox.Composition;
+using TomsToolbox.Essentials;
+using TomsToolbox.Wpf;
+
 namespace ICSharpCode.ILSpy.Docking
 {
-	public class DockWorkspace : INotifyPropertyChanged, ILayoutUpdateStrategy
+	[Export]
+	[Shared]
+	public class DockWorkspace : ObservableObject, ILayoutUpdateStrategy
 	{
-		private SessionSettings sessionSettings;
+		private readonly IExportProvider exportProvider;
 
-		public event PropertyChangedEventHandler PropertyChanged;
+		private readonly ObservableCollection<TabPageModel> tabPages = [];
+		private ReadOnlyCollection<ToolPaneModel> toolPanes;
 
-		public static DockWorkspace Instance { get; private set; }
+		readonly SessionSettings sessionSettings;
 
-		internal DockWorkspace(MainWindow parent)
+		private DockingManager DockingManager => exportProvider.GetExportedValue<DockingManager>();
+
+		public DockWorkspace(SettingsService settingsService, IExportProvider exportProvider)
 		{
-			Instance = this;
-			this.TabPages.CollectionChanged += Documents_CollectionChanged;
-			parent.CurrentAssemblyListChanged += MainWindow_Instance_CurrentAssemblyListChanged;
+			this.exportProvider = exportProvider;
+
+			sessionSettings = settingsService.SessionSettings;
+
+			this.tabPages.CollectionChanged += TabPages_CollectionChanged;
+			TabPages = new(tabPages);
+
+			MessageBus<CurrentAssemblyListChangedEventArgs>.Subscribers += (sender, e) => CurrentAssemblyList_Changed(sender, e);
 		}
 
-		private void MainWindow_Instance_CurrentAssemblyListChanged(object sender, NotifyCollectionChangedEventArgs e)
+		private void CurrentAssemblyList_Changed(object sender, NotifyCollectionChangedEventArgs e)
 		{
-			if (e.OldItems == null)
-			{
+			if (e.OldItems is not { } oldItems)
 				return;
-			}
-			foreach (var tab in TabPages.ToArray())
+
+			foreach (var tab in tabPages.ToArray())
 			{
 				var state = tab.GetState();
-				if (state == null || state.DecompiledNodes == null)
-				{
+				var decompiledNodes = state?.DecompiledNodes;
+				if (decompiledNodes == null)
 					continue;
-				}
-				bool found = false;
-				foreach (var node in state.DecompiledNodes)
+
+				bool found = decompiledNodes
+					.Select(node => node.Ancestors().OfType<TreeNodes.AssemblyTreeNode>().LastOrDefault())
+					.ExceptNullItems()
+					.Any(assemblyNode => !oldItems.Contains(assemblyNode.LoadedAssembly));
+
+				if (!found)
 				{
-					var assemblyNode = node.Ancestors().OfType<TreeNodes.AssemblyTreeNode>().LastOrDefault();
-					if (assemblyNode != null && !e.OldItems.Contains(assemblyNode.LoadedAssembly))
-					{
-						found = true;
-						break;
-					}
+					tabPages.Remove(tab);
 				}
-				if (!found && TabPages.Count > 1)
-				{
-					TabPages.Remove(tab);
-				}
+			}
+
+			if (tabPages.Count == 0)
+			{
+				AddTabPage();
 			}
 		}
 
-		private void Documents_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		private void TabPages_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
-			var collection = (PaneCollection<TabPageModel>)sender;
-			bool canClose = collection.Count > 1;
-			foreach (var item in collection)
+			if (e.Action == NotifyCollectionChangedAction.Add)
+			{
+				if (e.NewItems?[0] is TabPageModel model)
+				{
+					ActiveTabPage = model;
+					model.IsActive = true;
+					model.IsVisible = true;
+				}
+			}
+
+			bool canClose = tabPages.Count > 1;
+
+			foreach (var item in tabPages)
 			{
 				item.IsCloseable = canClose;
 			}
 		}
 
-		public PaneCollection<TabPageModel> TabPages { get; } = new PaneCollection<TabPageModel>();
+		public void AddTabPage(TabPageModel tabPage = null)
+		{
+			tabPages.Add(tabPage ?? exportProvider.GetExportedValue<TabPageModel>());
+		}
 
-		public ObservableCollection<ToolPaneModel> ToolPanes { get; } = new ObservableCollection<ToolPaneModel>();
+		public ReadOnlyObservableCollection<TabPageModel> TabPages { get; }
+
+		public ReadOnlyCollection<ToolPaneModel> ToolPanes => toolPanes ??= exportProvider
+			.GetExportedValues<ToolPaneModel>("ToolPane")
+			.OrderBy(item => item.Title)
+			.ToArray()
+			.AsReadOnly();
 
 		public bool ShowToolPane(string contentId)
 		{
@@ -112,44 +144,49 @@ namespace ICSharpCode.ILSpy.Docking
 
 		public void Remove(PaneModel model)
 		{
-			if (model is TabPageModel document)
-				TabPages.Remove(document);
-			if (model is ToolPaneModel tool)
-				tool.IsVisible = false;
+			switch (model)
+			{
+				case TabPageModel document:
+					tabPages.Remove(document);
+					break;
+				case ToolPaneModel tool:
+					tool.IsVisible = false;
+					break;
+			}
 		}
 
-		private TabPageModel _activeTabPage = null;
+		private TabPageModel activeTabPage = null;
 		public TabPageModel ActiveTabPage {
 			get {
-				return _activeTabPage;
+				return activeTabPage;
 			}
 			set {
-				if (_activeTabPage != value)
-				{
-					_activeTabPage = value;
-					var state = value.GetState();
-					if (state != null)
-					{
-						if (state.DecompiledNodes != null)
-						{
-							MainWindow.Instance.SelectNodes(state.DecompiledNodes,
-								inNewTabPage: false, setFocus: true, changingActiveTab: true);
-						}
-						else
-						{
-							MainWindow.Instance.NavigateTo(new RequestNavigateEventArgs(state.ViewedUri, null));
-						}
-					}
+				if (!SetProperty(ref activeTabPage, value))
+					return;
 
-					RaisePropertyChanged(nameof(ActiveTabPage));
-				}
+				var state = value?.GetState();
+				if (state == null)
+					return;
+
+				MessageBus.Send(this, new ActiveTabPageChangedEventArgs(value?.GetState()));
 			}
 		}
 
-		public void InitializeLayout(DockingManager manager)
+		public PaneModel ActivePane {
+			get => DockingManager.ActiveContent as PaneModel;
+			set => DockingManager.ActiveContent = value;
+		}
+
+		public void InitializeLayout()
 		{
-			manager.LayoutUpdateStrategy = this;
-			XmlLayoutSerializer serializer = new XmlLayoutSerializer(manager);
+			if (tabPages.Count == 0)
+			{
+				// Make sure there is at least one tab open
+				AddTabPage();
+			}
+
+			DockingManager.LayoutUpdateStrategy = this;
+			XmlLayoutSerializer serializer = new XmlLayoutSerializer(DockingManager);
 			serializer.LayoutSerializationCallback += LayoutSerializationCallback;
 			try
 			{
@@ -159,6 +196,9 @@ namespace ICSharpCode.ILSpy.Docking
 			{
 				serializer.LayoutSerializationCallback -= LayoutSerializationCallback;
 			}
+
+			DockingManager.SetBinding(DockingManager.AnchorablesSourceProperty, new Binding(nameof(ToolPanes)));
+			DockingManager.SetBinding(DockingManager.DocumentsSourceProperty, new Binding(nameof(TabPages)));
 		}
 
 		void LayoutSerializationCallback(object sender, LayoutSerializationCallbackEventArgs e)
@@ -166,24 +206,19 @@ namespace ICSharpCode.ILSpy.Docking
 			switch (e.Model)
 			{
 				case LayoutAnchorable la:
-					e.Content = ToolPanes.FirstOrDefault(p => p.ContentId == la.ContentId);
+					e.Content = this.ToolPanes.FirstOrDefault(p => p.ContentId == la.ContentId);
 					e.Cancel = e.Content == null;
 					la.CanDockAsTabbedDocument = false;
-					if (!e.Cancel)
+					if (e.Content is ToolPaneModel toolPaneModel)
 					{
-						e.Cancel = ((ToolPaneModel)e.Content).IsVisible;
-						((ToolPaneModel)e.Content).IsVisible = true;
+						e.Cancel = toolPaneModel.IsVisible;
+						toolPaneModel.IsVisible = true;
 					}
 					break;
 				default:
 					e.Cancel = true;
 					break;
 			}
-		}
-
-		protected void RaisePropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 
 		public void ShowText(AvalonEditTextOutput textOutput)
@@ -196,23 +231,21 @@ namespace ICSharpCode.ILSpy.Docking
 			return ActiveTabPage.ShowTextViewAsync(textView => textView.RunWithCancellation(taskCreation));
 		}
 
+		public Task<T> RunWithCancellation<T>(Func<CancellationToken, Task<T>> taskCreation, string progressTitle)
+		{
+			return ActiveTabPage.ShowTextViewAsync(textView => textView.RunWithCancellation(taskCreation, progressTitle));
+		}
+
 		internal void ShowNodes(AvalonEditTextOutput output, TreeNodes.ILSpyTreeNode[] nodes, IHighlightingDefinition highlighting)
 		{
 			ActiveTabPage.ShowTextView(textView => textView.ShowNodes(output, nodes, highlighting));
 		}
 
-		internal void LoadSettings(SessionSettings sessionSettings)
-		{
-			this.sessionSettings = sessionSettings;
-		}
-
 		internal void CloseAllTabs()
 		{
-			foreach (var doc in TabPages.ToArray())
-			{
-				if (doc.IsCloseable)
-					TabPages.Remove(doc);
-			}
+			var activePage = ActiveTabPage;
+
+			tabPages.RemoveWhere(page => page != activePage);
 		}
 
 		internal void ResetLayout()
@@ -223,8 +256,9 @@ namespace ICSharpCode.ILSpy.Docking
 			}
 			CloseAllTabs();
 			sessionSettings.DockLayout.Reset();
-			InitializeLayout(MainWindow.Instance.DockManager);
-			MainWindow.Instance.Dispatcher.BeginInvoke(DispatcherPriority.Background, (Action)MainWindow.Instance.RefreshDecompiledView);
+			InitializeLayout();
+
+			App.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, () => MessageBus.Send(this, new ResetLayoutEventArgs()));
 		}
 
 		static readonly PropertyInfo previousContainerProperty = typeof(LayoutContent).GetProperty("PreviousContainer", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -243,7 +277,7 @@ namespace ICSharpCode.ILSpy.Docking
 					previousContainer.Children.Add(anchorableToShow);
 					return true;
 				case LegacyToolPaneLocation.Bottom:
-					previousContainer = GetContainer<AnalyzerPaneModel>();
+					previousContainer = GetContainer<AnalyzerTreeViewModel>();
 					previousContainer.Children.Add(anchorableToShow);
 					return true;
 				default:
@@ -272,5 +306,8 @@ namespace ICSharpCode.ILSpy.Docking
 		public void AfterInsertDocument(LayoutRoot layout, LayoutDocument anchorableShown)
 		{
 		}
+
+		// Dummy property to make the XAML designer happy, the model is provided by the AvalonDock PaneStyleSelectors, not by the DockWorkspace, but the designer assumes the data context in the PaneStyleSelectors is the DockWorkspace.
+		public PaneModel Model { get; } = null;
 	}
 }

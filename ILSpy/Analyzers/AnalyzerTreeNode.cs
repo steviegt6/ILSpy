@@ -17,33 +17,26 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 
+using ICSharpCode.ILSpy.AssemblyTree;
 using ICSharpCode.ILSpyX;
+using ICSharpCode.ILSpyX.Analyzers;
 using ICSharpCode.ILSpyX.TreeView;
+
+using TomsToolbox.Composition;
 
 namespace ICSharpCode.ILSpy.Analyzers
 {
 	public abstract class AnalyzerTreeNode : SharpTreeNode
 	{
-		private Language language;
+		protected static Language Language => App.ExportProvider.GetExportedValue<LanguageService>().Language;
 
-		public Language Language {
-			get { return language; }
-			set {
-				if (language != value)
-				{
-					language = value;
-					foreach (var child in this.Children.OfType<AnalyzerTreeNode>())
-						child.Language = value;
-				}
-			}
-		}
+		protected static AssemblyList AssemblyList => App.ExportProvider.GetExportedValue<AssemblyList>();
 
 		public override bool CanDelete()
 		{
-			return Parent != null && Parent.IsRoot;
+			return Parent is { IsRoot: true };
 		}
 
 		public override void DeleteCore()
@@ -56,15 +49,10 @@ namespace ICSharpCode.ILSpy.Analyzers
 			DeleteCore();
 		}
 
-		internal protected override void OnChildrenChanged(NotifyCollectionChangedEventArgs e)
-		{
-			if (e.NewItems != null)
-			{
-				foreach (AnalyzerTreeNode a in e.NewItems.OfType<AnalyzerTreeNode>())
-					a.Language = this.Language;
-			}
-			base.OnChildrenChanged(e);
-		}
+		public static ICollection<IExport<IAnalyzer, IAnalyzerMetadata>> Analyzers => App.ExportProvider
+			.GetExports<IAnalyzer, IAnalyzerMetadata>("Analyzer")
+			.OrderBy(item => item.Metadata?.Order)
+			.ToArray();
 
 		/// <summary>
 		/// Handles changes to the assembly list.

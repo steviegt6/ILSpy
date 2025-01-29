@@ -18,7 +18,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Composition;
+using System.Composition;
 using System.Linq;
 using System.Reflection.Metadata;
 
@@ -29,7 +29,9 @@ using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.Solution;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
+using ICSharpCode.ILSpy.Docking;
 using ICSharpCode.ILSpy.TextView;
+using ICSharpCode.ILSpy.ViewModels;
 using ICSharpCode.ILSpyX;
 
 namespace ICSharpCode.ILSpy
@@ -42,7 +44,8 @@ namespace ICSharpCode.ILSpy
 	/// flat IL (detectControlStructure=false) and structured IL (detectControlStructure=true).
 	/// </remarks>
 	[Export(typeof(Language))]
-	public class ILLanguage : Language
+	[Shared]
+	public class ILLanguage(DockWorkspace dockWorkspace) : Language
 	{
 		protected bool detectControlStructure = true;
 
@@ -56,7 +59,7 @@ namespace ICSharpCode.ILSpy
 
 		protected virtual ReflectionDisassembler CreateDisassembler(ITextOutput output, DecompilationOptions options)
 		{
-			var displaySettings = MainWindow.Instance.CurrentDisplaySettings;
+			var displaySettings = SettingsService.DisplaySettings;
 			output.IndentationString = options.DecompilerSettings.CSharpFormattingOptions.IndentationString;
 			return new ReflectionDisassembler(output, options.CancellationToken) {
 				DetectControlStructure = detectControlStructure,
@@ -196,7 +199,8 @@ namespace ICSharpCode.ILSpy
 		public override RichText GetRichTextTooltip(IEntity entity)
 		{
 			var output = new AvalonEditTextOutput() { IgnoreNewLineAndIndent = true };
-			var disasm = CreateDisassembler(output, MainWindow.Instance.CreateDecompilationOptions());
+
+			var disasm = CreateDisassembler(output, dockWorkspace.ActiveTabPage.CreateDecompilationOptions());
 			MetadataFile module = entity.ParentModule?.MetadataFile;
 			if (module == null)
 			{

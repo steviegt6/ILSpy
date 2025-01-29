@@ -20,6 +20,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -27,6 +29,8 @@ using System.Windows.Media;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.ILSpyX;
+
+using TomsToolbox.Essentials;
 
 namespace ICSharpCode.ILSpy
 {
@@ -72,10 +76,11 @@ namespace ICSharpCode.ILSpy
 			return result;
 		}
 
-		public static ICompilation? GetTypeSystemWithCurrentOptionsOrNull(this MetadataFile file)
+		public static ICompilation? GetTypeSystemWithCurrentOptionsOrNull(this MetadataFile file, SettingsService settingsService)
 		{
-			return LoadedAssemblyExtensions.GetLoadedAssembly(file)
-				.GetTypeSystemOrNull(DecompilerTypeSystem.GetOptions(MainWindow.Instance.CurrentDecompilerSettings));
+			return file
+				.GetLoadedAssembly()
+				.GetTypeSystemOrNull(DecompilerTypeSystem.GetOptions(settingsService.DecompilerSettings));
 		}
 
 		#region DPI independence
@@ -123,9 +128,9 @@ namespace ICSharpCode.ILSpy
 				for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
 				{
 					DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
-					if (child != null && child is T)
+					if (child is T dependencyObject)
 					{
-						return (T)child;
+						return dependencyObject;
 					}
 
 					T? childItem = FindVisualChild<T>(child);
@@ -161,6 +166,55 @@ namespace ICSharpCode.ILSpy
 		public static double ToGray(this Color? color)
 		{
 			return color?.R * 0.3 + color?.G * 0.6 + color?.B * 0.1 ?? 0.0;
+		}
+
+		internal static string? FormatExceptions(this IList<App.ExceptionData> exceptions)
+		{
+			if (exceptions.Count == 0)
+				return null;
+
+			string delimiter = $"-------------------------------------------------{Environment.NewLine}";
+
+			return string.Join(delimiter, exceptions.Select(FormatException));
+		}
+
+		private static string FormatException(App.ExceptionData item)
+		{
+			var output = new StringBuilder();
+
+			if (!item.PluginName.IsNullOrEmpty())
+				output.AppendLine("Error(s) loading plugin: " + item.PluginName);
+
+			if (item.Exception is System.Reflection.ReflectionTypeLoadException exception)
+			{
+				foreach (var ex in exception.LoaderExceptions.ExceptNullItems())
+				{
+					output.AppendLine(ex.ToString());
+					output.AppendLine();
+				}
+			}
+			else
+			{
+				output.AppendLine(item.Exception.ToString());
+			}
+
+			return output.ToString();
+		}
+
+		public static IDisposable PreserveFocus(this IInputElement? inputElement, bool preserve = true)
+		{
+			return new RestoreFocusHelper(inputElement, preserve);
+		}
+
+		private sealed class RestoreFocusHelper(IInputElement? inputElement, bool preserve) : IDisposable
+		{
+			public void Dispose()
+			{
+				if (preserve)
+				{
+					inputElement?.Focus();
+				}
+			}
 		}
 	}
 }

@@ -17,22 +17,19 @@
 // DEALINGS IN THE SOFTWARE.
 
 
+using System.Composition;
+
 using ICSharpCode.ILSpy.Properties;
-using ICSharpCode.ILSpyX.Settings;
 
 namespace ICSharpCode.ILSpy
 {
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._Help), Header = nameof(Resources._CheckUpdates), MenuOrder = 5000)]
+	[Shared]
 	sealed class CheckForUpdatesCommand : SimpleCommand
 	{
-		public override bool CanExecute(object parameter)
+		public override void Execute(object parameter)
 		{
-			return base.CanExecute(parameter);
-		}
-
-		public override async void Execute(object parameter)
-		{
-			await MainWindow.Instance.ShowMessageIfUpdatesAvailableAsync(ILSpySettings.Load(), forceCheck: true);
+			MessageBus.Send(this, new CheckIfUpdateAvailableEventArgs(notify: true));
 		}
 	}
 }

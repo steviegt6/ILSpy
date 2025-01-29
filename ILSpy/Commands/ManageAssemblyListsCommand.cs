@@ -17,18 +17,31 @@
 // DEALINGS IN THE SOFTWARE.
 
 
+using System.Composition;
+using System.Windows;
+using System.Windows.Data;
+
 using ICSharpCode.ILSpy.Properties;
 
 namespace ICSharpCode.ILSpy
 {
 	[ExportMainMenuCommand(ParentMenuID = nameof(Resources._File), Header = nameof(Resources.ManageAssembly_Lists), MenuIcon = "Images/AssemblyList", MenuCategory = nameof(Resources.Open), MenuOrder = 1.7)]
-	sealed class ManageAssemblyListsCommand : SimpleCommand
+	[Shared]
+	sealed class ManageAssemblyListsCommand(SettingsService settingsService) : SimpleCommand, IProvideParameterBinding
 	{
 		public override void Execute(object parameter)
 		{
-			ManageAssemblyListsDialog dlg = new ManageAssemblyListsDialog();
-			dlg.Owner = MainWindow.Instance;
+			ManageAssemblyListsDialog dlg = new(settingsService) {
+				Owner = parameter as Window
+			};
+
 			dlg.ShowDialog();
 		}
+
+		public Binding ParameterBinding => new() {
+			RelativeSource = new(RelativeSourceMode.FindAncestor) {
+				AncestorType = typeof(Window)
+			}
+		};
 	}
 }
