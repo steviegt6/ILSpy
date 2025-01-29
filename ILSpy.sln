@@ -36,16 +36,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ICSharpCode.ILSpyX", "ICSha
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ICSharpCode.BamlDecompiler", "ICSharpCode.BamlDecompiler\ICSharpCode.BamlDecompiler.csproj", "{81A30182-3378-4952-8880-F44822390040}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tomat.FNB.TMOD", "Tomat.FNB\Tomat.FNB.TMOD.csproj", "{6D88EB2F-D9C6-45D6-8CEC-684BFADC3E89}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tomat.FNB.Common", "Tomat.FNB\Tomat.FNB.Common.csproj", "{4F769B76-8006-46D7-9452-BE160F98810F}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D0858E90-DCD5-4FD9-AA53-7262FAB8BEDB}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
-		Directory.Build.props = Directory.Build.props
 		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fnb", "fnb", "{A55C7236-E479-4B4E-97E9-887B3487001D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tomat.FNB.Common", "fnb\src\Tomat.FNB.Common\Tomat.FNB.Common.csproj", "{1AC7C56F-7ADB-494D-8B0A-DC64E7810BB9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tomat.FNB.TMOD", "fnb\src\Tomat.FNB.TMOD\Tomat.FNB.TMOD.csproj", "{69C4507C-2446-4395-847C-DB5A0564D9E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tomat.FNB", "fnb\src\Tomat.FNB\Tomat.FNB.csproj", "{F5755682-D36C-4445-AA4A-2FEDBB980267}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -105,19 +108,28 @@ Global
 		{81A30182-3378-4952-8880-F44822390040}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81A30182-3378-4952-8880-F44822390040}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81A30182-3378-4952-8880-F44822390040}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6D88EB2F-D9C6-45D6-8CEC-684BFADC3E89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6D88EB2F-D9C6-45D6-8CEC-684BFADC3E89}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6D88EB2F-D9C6-45D6-8CEC-684BFADC3E89}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6D88EB2F-D9C6-45D6-8CEC-684BFADC3E89}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4F769B76-8006-46D7-9452-BE160F98810F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4F769B76-8006-46D7-9452-BE160F98810F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4F769B76-8006-46D7-9452-BE160F98810F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4F769B76-8006-46D7-9452-BE160F98810F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AC7C56F-7ADB-494D-8B0A-DC64E7810BB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AC7C56F-7ADB-494D-8B0A-DC64E7810BB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AC7C56F-7ADB-494D-8B0A-DC64E7810BB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AC7C56F-7ADB-494D-8B0A-DC64E7810BB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69C4507C-2446-4395-847C-DB5A0564D9E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69C4507C-2446-4395-847C-DB5A0564D9E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69C4507C-2446-4395-847C-DB5A0564D9E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69C4507C-2446-4395-847C-DB5A0564D9E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5755682-D36C-4445-AA4A-2FEDBB980267}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5755682-D36C-4445-AA4A-2FEDBB980267}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5755682-D36C-4445-AA4A-2FEDBB980267}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5755682-D36C-4445-AA4A-2FEDBB980267}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C764218F-7633-4412-923D-558CE7EE0560}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1AC7C56F-7ADB-494D-8B0A-DC64E7810BB9} = {A55C7236-E479-4B4E-97E9-887B3487001D}
+		{69C4507C-2446-4395-847C-DB5A0564D9E4} = {A55C7236-E479-4B4E-97E9-887B3487001D}
+		{F5755682-D36C-4445-AA4A-2FEDBB980267} = {A55C7236-E479-4B4E-97E9-887B3487001D}
 	EndGlobalSection
 EndGlobal

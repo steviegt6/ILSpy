@@ -34,15 +34,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Iced" />
-    <PackageReference Include="ILCompiler.Reflection.ReadyToRun.Experimental" />
+    <PackageReference Include="Iced" Version="1.21.0" />
+    <PackageReference Include="ILCompiler.Reflection.ReadyToRun.Experimental" Version="9.0.1-rtm.24557.9" />
     <!-- ILCompiler.Reflection.ReadyToRun has dependencies on System.Reflection.Metadata and
          System.Runtime.CompilerServices.Unsafe. Because the AddIn compiles into ILSpy's output
          directory, we're at risk of overwriting our dependencies with different versions.
          So ensure NuGet uses consistent versions (from our packages.props) for these.
          -->
-    <PackageReference Include="System.Reflection.Metadata" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+    <PackageReference Include="System.Reflection.Metadata" Version="9.0.1" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
   </ItemGroup>
 
 </Project>

@@ -57,10 +57,20 @@
         "resolved": "2.21.0",
         "contentHash": "vJx9hxAzjni34slGz78ewqYP9Ylk8dJszfEUK1TF5cflVKMBO3ORSFd0FtICTwJtE8munvZrMrcLWwXt5bIcEA=="
       },
+      "CliFx": {
+        "type": "Transitive",
+        "resolved": "2.3.5",
+        "contentHash": "WaZDt7FC1ViEzS5m7w7lOWT/aluZ28fFkPcRdkQ+7DowqjTmr5YZswNIDqSuBDaeGXPe8VzTZKMltKrXhIOt9Q=="
+      },
       "CommunityToolkit.HighPerformance": {
         "type": "Transitive",
-        "resolved": "7.0.1",
-        "contentHash": "aokbk7dovt+4piAfKqh6Nw5aq6Qh+oRPxkqX7X2oGNELaFmBXCeHdhzCpcqcMWeUimckU4yGhm32uWFdz9OA6g=="
+        "resolved": "8.2.2",
+        "contentHash": "+zIp8d3sbtYaRbM6hqDs4Ui/z34j7DcUmleruZlYLE4CVxXq+MO8XJyIs42vzeTYFX+k0Iq1dEbBUnQ4z/Gnrw=="
+      },
+      "JetBrains.Annotations": {
+        "type": "Transitive",
+        "resolved": "2024.2.0",
+        "contentHash": "GNnqCFW/163p1fOehKx0CnAqjmpPrUSqrgfHM6qca+P+RN39C9rhlfZHQpJhxmQG/dkOYe/b3Z0P8b6Kv5m1qw=="
       },
       "Microsoft.Build.Tasks.Git": {
         "type": "Transitive",
@@ -71,6 +81,22 @@
         "type": "Transitive",
         "resolved": "8.0.0",
         "contentHash": "dk9JPxTCIevS75HyEQ0E4OVAFhB2N+V9ShCXf8Q6FkUQZDkgLI12y679Nym1YqsiSysuQskT7Z+6nUf3yab6Vw=="
+      },
+      "SixLabors.ImageSharp": {
+        "type": "Transitive",
+        "resolved": "3.1.5",
+        "contentHash": "lNtlq7dSI/QEbYey+A0xn48z5w4XHSffF8222cC4F4YwTXfEImuiBavQcWjr49LThT/pRmtWJRcqA/PlL+eJ6g=="
+      },
+      "System.Collections.Immutable": {
+        "type": "Transitive",
+        "resolved": "9.0.1",
+        "contentHash": "qt4+ClsZYKzar/Rw1zbt0t9iuBUCLVNsjXicEuVQyKL7143CwhWzI2gTwzz8AhSaFYVHnpcb8SBGA+zaY4weUg=="
+      },
+      "fnb": {
+        "type": "Project",
+        "dependencies": {
+          "Tomat.FNB.TMOD": "[0.1.0, )"
+        }
       },
       "icsharpcode.decompiler": {
         "type": "Project",
@@ -83,7 +109,7 @@
         "type": "Project",
         "dependencies": {
           "CliFx": "[2.3.5, )",
-          "CommunityToolkit.HighPerformance": "(, )",
+          "CommunityToolkit.HighPerformance": "[8.2.2, )",
           "JetBrains.Annotations": "[2024.2.0, )"
         }
       },
@@ -93,30 +119,6 @@
           "SixLabors.ImageSharp": "[3.1.5, )",
           "Tomat.FNB.Common": "[0.1.0, )"
         }
-      },
-      "CliFx": {
-        "type": "CentralTransitive",
-        "requested": "[2.3.5, )",
-        "resolved": "2.3.5",
-        "contentHash": "WaZDt7FC1ViEzS5m7w7lOWT/aluZ28fFkPcRdkQ+7DowqjTmr5YZswNIDqSuBDaeGXPe8VzTZKMltKrXhIOt9Q=="
-      },
-      "JetBrains.Annotations": {
-        "type": "CentralTransitive",
-        "requested": "[2024.2.0, )",
-        "resolved": "2024.2.0",
-        "contentHash": "GNnqCFW/163p1fOehKx0CnAqjmpPrUSqrgfHM6qca+P+RN39C9rhlfZHQpJhxmQG/dkOYe/b3Z0P8b6Kv5m1qw=="
-      },
-      "SixLabors.ImageSharp": {
-        "type": "CentralTransitive",
-        "requested": "[3.1.5, )",
-        "resolved": "3.1.5",
-        "contentHash": "lNtlq7dSI/QEbYey+A0xn48z5w4XHSffF8222cC4F4YwTXfEImuiBavQcWjr49LThT/pRmtWJRcqA/PlL+eJ6g=="
-      },
-      "System.Collections.Immutable": {
-        "type": "CentralTransitive",
-        "requested": "[9.0.1, )",
-        "resolved": "9.0.1",
-        "contentHash": "qt4+ClsZYKzar/Rw1zbt0t9iuBUCLVNsjXicEuVQyKL7143CwhWzI2gTwzz8AhSaFYVHnpcb8SBGA+zaY4weUg=="
       }
     }
   }

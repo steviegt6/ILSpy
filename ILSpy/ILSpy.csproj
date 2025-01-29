@@ -42,16 +42,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AvalonEdit" />
-    <PackageReference Include="Dirkster.AvalonDock.Themes.VS2013" />
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-    <PackageReference Include="DataGridExtensions" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" />
-    <PackageReference Include="NaturalSort.Extension" />
-    <PackageReference Include="TomsToolbox.Composition.MicrosoftExtensions" />
-    <PackageReference Include="TomsToolbox.Wpf.Composition.AttributedModel" />
-    <PackageReference Include="TomsToolbox.Wpf.Styles" />
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+    <PackageReference Include="Dirkster.AvalonDock.Themes.VS2013" Version="4.72.1" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="DataGridExtensions" Version="2.6.0" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+    <PackageReference Include="NaturalSort.Extension" Version="4.3.0" />
+    <PackageReference Include="TomsToolbox.Composition.MicrosoftExtensions" Version="2.21.0" />
+    <PackageReference Include="TomsToolbox.Wpf.Composition.AttributedModel" Version="2.21.0" />
+    <PackageReference Include="TomsToolbox.Wpf.Styles" Version="2.21.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -91,14 +91,14 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-    <PackageReference Include="Microsoft.DiaSymReader.Converter.Xml" />
-    <PackageReference Include="Microsoft.DiaSymReader" />
-    <PackageReference Include="Microsoft.DiaSymReader.Native" />
+    <PackageReference Include="Microsoft.DiaSymReader.Converter.Xml" Version="1.1.0-beta2-22171-02" />
+    <PackageReference Include="Microsoft.DiaSymReader" Version="1.4.0" />
+    <PackageReference Include="Microsoft.DiaSymReader.Native" Version="17.0.0-beta1.21524.1" />
 
     <!-- 4.3.0 of all those have security vulnerabilities, and although only a debug build, we'll override the versions for good measure -->
-    <PackageReference Include="System.Net.Http" />
-    <PackageReference Include="System.Private.Uri" />
-    <PackageReference Include="System.Text.RegularExpressions" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
   </ItemGroup>
 
   <PropertyGroup>

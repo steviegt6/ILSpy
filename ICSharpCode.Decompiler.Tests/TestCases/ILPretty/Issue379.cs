@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace ICSharpCode.Decompiler.Tests.TestCases.ILPretty
+﻿namespace ICSharpCode.Decompiler.Tests.TestCases.ILPretty
 {
 	internal class Issue379
 	{
