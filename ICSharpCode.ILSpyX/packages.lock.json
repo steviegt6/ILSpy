@@ -57,10 +57,10 @@
         "resolved": "2.21.0",
         "contentHash": "vJx9hxAzjni34slGz78ewqYP9Ylk8dJszfEUK1TF5cflVKMBO3ORSFd0FtICTwJtE8munvZrMrcLWwXt5bIcEA=="
       },
-      "LibDeflate.Native": {
+      "CommunityToolkit.HighPerformance": {
         "type": "Transitive",
-        "resolved": "1.19.0",
-        "contentHash": "wFAWRowYy9f62vnv/c4gxtY6C5y74D4kIZ4HubiNWdq4f0Q/VYywtxOF+cfnh4r8+3htUfZFYciVDyeOQztMzw=="
+        "resolved": "7.0.1",
+        "contentHash": "aokbk7dovt+4piAfKqh6Nw5aq6Qh+oRPxkqX7X2oGNELaFmBXCeHdhzCpcqcMWeUimckU4yGhm32uWFdz9OA6g=="
       },
       "Microsoft.Build.Tasks.Git": {
         "type": "Transitive",
@@ -83,8 +83,8 @@
         "type": "Project",
         "dependencies": {
           "CliFx": "[2.3.5, )",
-          "JetBrains.Annotations": "[2024.2.0, )",
-          "LibDeflate.NET": "[1.19.0, )"
+          "CommunityToolkit.HighPerformance": "(, )",
+          "JetBrains.Annotations": "[2024.2.0, )"
         }
       },
       "tomat.fnb.tmod": {
@@ -105,15 +105,6 @@
         "requested": "[2024.2.0, )",
         "resolved": "2024.2.0",
         "contentHash": "GNnqCFW/163p1fOehKx0CnAqjmpPrUSqrgfHM6qca+P+RN39C9rhlfZHQpJhxmQG/dkOYe/b3Z0P8b6Kv5m1qw=="
-      },
-      "LibDeflate.NET": {
-        "type": "CentralTransitive",
-        "requested": "[1.19.0, )",
-        "resolved": "1.19.0",
-        "contentHash": "zZYtKPn0NUBtcIBOET6iWHB+jE3X20FRayao7u9UTqyGZRRQ7QjI9VVYfF1IsnsGPWRZUFqOlSCGkSlgMT3EDA==",
-        "dependencies": {
-          "LibDeflate.Native": "1.19.0"
-        }
       },
       "SixLabors.ImageSharp": {
         "type": "CentralTransitive",
