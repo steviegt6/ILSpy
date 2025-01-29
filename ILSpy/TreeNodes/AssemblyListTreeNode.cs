@@ -28,6 +28,8 @@ using ICSharpCode.Decompiler.Util;
 using ICSharpCode.ILSpyX;
 using ICSharpCode.ILSpyX.TreeView.PlatformAbstractions;
 using ICSharpCode.ILSpyX.TreeView;
+using System.IO;
+using TomsToolbox.Essentials;
 
 namespace ICSharpCode.ILSpy.TreeNodes
 {
@@ -104,13 +106,24 @@ namespace ICSharpCode.ILSpy.TreeNodes
 			if (files != null)
 			{
 				var assemblies = files
-					.Where(file => file != null)
+					.Where(file => file != null && File.Exists(file))
 					.Select(file => assemblyList.OpenAssembly(file))
 					.Where(asm => asm != null)
 					.Distinct()
-					.ToArray();
-				assemblyList.Move(assemblies, index);
-				var nodes = assemblies.SelectArray(MainWindow.Instance.FindTreeNode);
+					.ToList();
+
+				var a = files.Where(file => file != null && Directory.Exists(file))
+						 .SelectMany(dir => Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories));
+				assemblies.AddRange(
+					files.Where(file => file != null && Directory.Exists(file))
+					     .SelectMany(dir => Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories))
+						 .Select(dll => assemblyList.OpenAssembly(dll))
+						 .Where(asm => asm != null)
+						 .Distinct()
+				);
+				var asms = assemblies.ToArray();
+				assemblyList.Move(asms, index);
+				var nodes = asms.SelectArray(MainWindow.Instance.FindTreeNode);
 				MainWindow.Instance.SelectNodes(nodes);
 			}
 		}
